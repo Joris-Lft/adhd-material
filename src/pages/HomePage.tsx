@@ -1,4 +1,7 @@
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 export function HomePage() {
+  useDocumentTitle("Annonces");
   return (
     <section>
       <h1 className="text-2xl font-bold">Annonces</h1>

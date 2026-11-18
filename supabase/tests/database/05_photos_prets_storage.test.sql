@@ -1,6 +1,6 @@
 begin;
 \ir ../support/helpers.inc
-select plan(61);
+select plan(63);
 select tests.setup();
 
 -- ======================= photos : 1 à 3 par annonce, chemin {uid}/{nom}.{ext}
@@ -41,19 +41,23 @@ select lives_ok($$insert into public.loans (listing_id, borrower_id) values ('b0
 select is((select status::text from public.listings where id = 'b0000000-0000-0000-0000-000000000002'), 'pretee', 'l''annonce passe à « pretee »');
 select is(current_setting('app.loan_sync', true), 'off', 'le signal app.loan_sync est remis à off après le prêt');
 select throws_ok($$update public.listings set status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'impossible de remettre « disponible » pendant le prêt');
+select set_config('app.loan_sync', 'on', true);  -- signal posé en SQL direct par un authenticated
+select throws_ok($$update public.listings set status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'le signal app.loan_sync seul ne lève plus le garde-fou (pretee -> disponible refusé)');
+select is((select status::text from public.listings where id = 'b0000000-0000-0000-0000-000000000002'), 'pretee', 'le statut « pretee » est inchangé');
+select set_config('app.loan_sync', 'off', true);
 select throws_ok($$update public.listings set status = 'reservee' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'impossible de « réserver » pendant le prêt');
 select throws_ok($$update public.listings set kind = 'don' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'kind immuable une fois un prêt enregistré');
 select throws_ok($$update public.listings set status = 'archivee' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'impossible d''archiver pendant un prêt : on clôture d''abord');
 select tests.act_admin();
-select set_config('app.loan_sync', 'on', true);  -- état incohérent forcé (admin) : archivée avec prêt ouvert
+set local session_replication_role = replica;  -- état incohérent forcé (admin) : archivée avec prêt ouvert
 update public.listings set status = 'archivee' where id = 'b0000000-0000-0000-0000-000000000002';
-select set_config('app.loan_sync', 'off', true);
+set local session_replication_role = origin;
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 select throws_ok($$update public.listings set status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'archivée -> disponible refusé tant qu''un prêt est ouvert');
 select tests.act_admin();
-select set_config('app.loan_sync', 'on', true);  -- levée explicite du garde-fou (réservée aux triggers loans)
+set local session_replication_role = replica;  -- retour forcé à « pretee » (admin)
 update public.listings set status = 'pretee' where id = 'b0000000-0000-0000-0000-000000000002';
-select set_config('app.loan_sync', 'off', true);
+set local session_replication_role = origin;
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 select throws_ok($$insert into public.loans (listing_id, borrower_id) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222')$$, '23514', null, 'pas de second prêt en cours');
 select throws_ok($$update public.loans set borrower_id = '33333333-3333-3333-3333-333333333333'$$, '42501', null, 'borrower_id non modifiable');

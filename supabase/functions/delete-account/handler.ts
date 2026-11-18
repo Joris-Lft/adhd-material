@@ -32,7 +32,7 @@ export function buildAllowedOrigins(envValue?: string | null): (string | RegExp)
   const extra = (envValue ?? '').split(',').map((o) => o.trim()).filter(Boolean)
   return [
     'http://localhost:5173',
-    /^https:\/\/adhd-material-[a-z0-9-]+-joris-lfts-projects\.vercel\.app$/,
+    /^https:\/\/adhd-material-[a-z0-9]{9}-joris-lfts-projects\.vercel\.app$/,
     ...extra,
   ]
 }
@@ -70,11 +70,11 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   const now = deps.now ?? Date.now
 
   const origin = req.headers.get('Origin')
-  const cors: Record<string, string> = {}
+  // La réponse dépend de l'en-tête Origin : Vary: Origin toujours présent (caches, CDN).
+  const cors: Record<string, string> = { Vary: 'Origin' }
   if (origin) {
     if (!isAllowed(origin, allowedOrigins)) return jsonResponse({ error: 'origin_not_allowed' }, 403, cors)
     cors['Access-Control-Allow-Origin'] = origin
-    cors['Vary'] = 'Origin'
     cors['Access-Control-Allow-Headers'] = 'authorization, x-client-info, apikey, content-type'
     cors['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
   }

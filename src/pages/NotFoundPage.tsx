@@ -1,7 +1,9 @@
 import { Link } from "react-router";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Button } from "@/components/ui/button";
 
 export function NotFoundPage() {
+  useDocumentTitle("Page introuvable");
   return (
     <section className="py-12 text-center">
       <h1 className="text-2xl font-bold">Page introuvable</h1>

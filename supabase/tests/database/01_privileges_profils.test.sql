@@ -1,6 +1,6 @@
 begin;
 \ir ../support/helpers.inc
-select plan(66);
+select plan(82);
 select tests.setup();
 
 -- ======================= RLS et privilèges
@@ -25,7 +25,7 @@ select is(array(
 select is(array(
   select p.proname::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname in ('public', 'private') and has_function_privilege('authenticated', p.oid, 'execute') order by 1
-), array['clean_text', 'get_my_profile', 'normalize_place', 'normalize_text', 'search_activities', 'search_cities', 'search_listings', 'shares_conversation_with']::text[],
+), array['clean_text', 'conversation_has_both_parties', 'get_my_profile', 'normalize_place', 'normalize_text', 'search_activities', 'search_cities', 'search_listings', 'shares_conversation_with']::text[],
   'fonctions exécutables par authenticated : liste blanche (aucune fonction de trigger)');
 
 -- ======================= anon : lecture seule, profil public minimal
@@ -106,7 +106,28 @@ select throws_ok($$update public.profiles set display_name = 'Anonyme' where id 
 select throws_ok($$update public.profiles set display_name = 'Membre supprimé' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'pseudo réservé ou motif membre- refusé : Membre supprimé');
 select throws_ok($$update public.profiles set display_name = 'Membre-ABCD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'pseudo réservé ou motif membre- refusé : Membre-ABCD');
 select throws_ok($$update public.profiles set display_name = 'membre-zzzz' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'pseudo réservé ou motif membre- refusé : membre-zzzz');
-select lives_ok($$update public.profiles set display_name = 'Membre Solide' where id = '22222222-2222-2222-2222-222222222222'$$, 'un pseudo proche mais non réservé reste accepté');
+select throws_ok($$update public.profiles set display_name = 'membre ABCD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'préfixe membre refusé : membre ABCD');
+select throws_ok($$update public.profiles set display_name = 'Membre_ABCD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'préfixe membre refusé : Membre_ABCD');
+select throws_ok($$update public.profiles set display_name = 'MembreABCD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'préfixe membre refusé : MembreABCD');
+select throws_ok($$update public.profiles set display_name = 'Admin ADHD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé en contenu refusé : Admin ADHD');
+select throws_ok($$update public.profiles set display_name = 'L''équipe ADHD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé en contenu refusé : L''équipe ADHD');
+select throws_ok($$update public.profiles set display_name = 'Le Support' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé en contenu refusé : Le Support');
+select throws_ok($$update public.profiles set display_name = 'adhd_material fan' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé en contenu refusé : adhd_material fan');
+select throws_ok($$update public.profiles set display_name = 'Système Pro' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé en contenu refusé : Système Pro');
+select throws_ok($$update public.profiles set display_name = 'Moderateur Paul' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé en contenu refusé : Moderateur Paul');
+select lives_ok($$update public.profiles set display_name = 'Memo Solide' where id = '22222222-2222-2222-2222-222222222222'$$, 'un pseudo contenant « mem » reste accepté');
+select lives_ok($$update public.profiles set display_name = 'Cadmium Pierre' where id = '22222222-2222-2222-2222-222222222222'$$, 'pas de faux positif grossier (Cadmium contient admin)');
+select throws_ok($$update public.profiles set display_name = 'Admin_ADHD' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé refusé malgré « _ » ou chiffres : Admin_ADHD');
+select throws_ok($$update public.profiles set display_name = 'Admin2' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé refusé malgré « _ » ou chiffres : Admin2');
+select throws_ok($$update public.profiles set display_name = 'Le_staff' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé refusé malgré « _ » ou chiffres : Le_staff');
+select throws_ok($$update public.profiles set display_name = 'Modo' where id = '22222222-2222-2222-2222-222222222222'$$, '23514', 'Ce pseudo n''est pas disponible', 'mot réservé refusé malgré « _ » ou chiffres : Modo');
+select lives_ok($$update public.profiles set display_name = 'Membrane' where id = '22222222-2222-2222-2222-222222222222'$$, 'Membrane (pas le préfixe membre) accepté');
+select tests.act_admin();
+set local session_replication_role = replica;
+update public.profiles set display_name = 'Admin_Bob' where id = '22222222-2222-2222-2222-222222222222';
+set local session_replication_role = origin;
+select tests.act_as('22222222-2222-2222-2222-222222222222');
+select lives_ok($$update public.profiles set city_id = tests.city('69123') where id = '22222222-2222-2222-2222-222222222222'$$, 'pseudo devenu réservé : mise à jour du profil sans changer le pseudo acceptée');
 select lives_ok($$update public.profiles set display_name = 'Bob', display_name_confirmed = true where id = '22222222-2222-2222-2222-222222222222'$$, 'le pseudo actuel peut être ré-enregistré');
 
 -- ======================= profil créé à l'inscription : pseudo neutre

@@ -1,6 +1,6 @@
 begin;
 \ir ../support/helpers.inc
-select plan(30);
+select plan(37);
 select tests.setup();
 
 select tests.open_conversation('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
@@ -54,6 +54,30 @@ select tests.act_as('11111111-1111-1111-1111-111111111111');
 select throws_ok($$select count(*) from public.reports$$, '42501', null, 'reports non lisibles par le propriétaire de l''annonce signalée');
 select tests.act_anon();
 select throws_ok($$select count(*) from public.reports$$, '42501', null, 'reports non lisibles par anon');
+
+-- helper autonome : participant -> true, non-participant -> false
+select tests.act_as('22222222-2222-2222-2222-222222222222');
+select is(private.conversation_has_both_parties(tests.conv()), true, 'helper : un participant obtient true');
+select tests.act_as('33333333-3333-3333-3333-333333333333');
+select is(private.conversation_has_both_parties(tests.conv()), false, 'helper : un non-participant obtient false');
+
+-- ======================= conversations orphelines : lecture oui, écriture non
+-- (demandeur supprimé : conversation carol -> annonce de bob ; propriétaire supprimé : conversation bob -> annonce d'alice)
+select tests.open_conversation('b0000000-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333');
+select set_config('tests.conv_requester', tests.conv()::text, true);
+select tests.act_as('22222222-2222-2222-2222-222222222222');
+select lives_ok($$insert into public.messages (conversation_id, body) values (current_setting('tests.conv_requester')::uuid, 'Avant suppression')$$, 'bob (propriétaire) écrit tant que le demandeur existe');
+select tests.act_admin();
+delete from auth.users where id = '33333333-3333-3333-3333-333333333333';
+select tests.act_as('22222222-2222-2222-2222-222222222222');
+select throws_ok($$insert into public.messages (conversation_id, body) values (current_setting('tests.conv_requester')::uuid, 'Dans le vide')$$, '42501', null, 'écriture refusée si la conversation n''a plus de demandeur');
+select is((select count(*) from public.messages where conversation_id = current_setting('tests.conv_requester')::uuid), 1::bigint, 'mais la conversation reste lisible');
+
+select tests.act_admin();
+delete from auth.users where id = '11111111-1111-1111-1111-111111111111';
+select tests.act_as('22222222-2222-2222-2222-222222222222');
+select throws_ok($$insert into public.messages (conversation_id, body) select id, 'Dans le vide' from public.conversations where listing_id = 'b0000000-0000-0000-0000-000000000001'$$, '42501', null, 'écriture refusée si l''annonce n''a plus de propriétaire');
+select is((select count(*) from public.messages m join public.conversations c on c.id = m.conversation_id where c.listing_id = 'b0000000-0000-0000-0000-000000000001'), 3::bigint, 'mais les messages restent lisibles par le demandeur');
 
 select * from finish();
 rollback;
