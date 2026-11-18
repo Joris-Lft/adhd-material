@@ -17,6 +17,7 @@ import { GoogleButton } from "@/features/auth/GoogleButton";
 import { useSession } from "@/features/auth/useSession";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import { clearDeleteIntent, hasDeleteIntent, rememberDeleteIntent } from "@/lib/delete-intent";
+import { isEmailAuthEnabled } from "@/lib/features";
 import { lastAuthTimestamp, needsReauth } from "@/lib/jwt";
 import { rememberNextPath } from "@/lib/next-path";
 import {
@@ -39,6 +40,7 @@ export function DeleteAccountSection() {
   const hasGoogle =
     !!session?.user.identities?.some((identity) => identity.provider === "google") ||
     !!session?.user.app_metadata?.providers?.includes("google");
+  const emailEnabled = isEmailAuthEnabled();
   const navigate = useNavigate();
 
   // Intention enregistrée avant l'envoi d'un code ou le départ chez Google : seule elle, et jamais
@@ -157,38 +159,56 @@ export function DeleteAccountSection() {
               </span>
             )}
           </p>
-          {codeSent && email ? (
-            <CodeStep
-              email={email}
-              onResend={() => sendEmailCode(email, false)}
-              onVerified={() => {
-                setCodeSent(false);
-                setStep("confirm");
-              }}
-            />
+          {!emailEnabled ? (
+            hasGoogle ? (
+              <GoogleButton
+                label="Passer par Google"
+                queryParams={{ prompt: "select_account" }}
+                beforeRedirect={rememberIntent}
+              />
+            ) : (
+              // TODO : renseigner l'adresse du support quand elle existera.
+              <p role="alert" className="text-sm">
+                Ton compte n'est pas relié à Google, donc on ne peut pas vérifier que c'est bien toi
+                ici. Contacte-nous : on supprimera ton compte avec toi.
+              </p>
+            )
           ) : (
-            <div className="space-y-3">
-              <LoadingButton
-                type="button"
-                className="w-full sm:w-auto"
-                loading={sending}
-                onClick={sendCode}
-              >
-                Recevoir un code par email
-              </LoadingButton>
-              {sendError && (
-                <p role="alert" className="text-sm text-destructive">
-                  {sendError}
-                </p>
-              )}
-              {hasGoogle && (
-                <GoogleButton
-                  label="Passer par Google"
-                  queryParams={{ prompt: "select_account" }}
-                  beforeRedirect={rememberIntent}
+            <>
+              {codeSent && email ? (
+                <CodeStep
+                  email={email}
+                  onResend={() => sendEmailCode(email, false)}
+                  onVerified={() => {
+                    setCodeSent(false);
+                    setStep("confirm");
+                  }}
                 />
+              ) : (
+                <div className="space-y-3">
+                  <LoadingButton
+                    type="button"
+                    className="w-full sm:w-auto"
+                    loading={sending}
+                    onClick={sendCode}
+                  >
+                    Recevoir un code par email
+                  </LoadingButton>
+                  {sendError && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {sendError}
+                    </p>
+                  )}
+                  {hasGoogle && (
+                    <GoogleButton
+                      label="Passer par Google"
+                      queryParams={{ prompt: "select_account" }}
+                      beforeRedirect={rememberIntent}
+                    />
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
           <Button type="button" variant="ghost" onClick={cancel}>
             Annuler

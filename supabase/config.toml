@@ -253,13 +253,16 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-[auth.email.template.magic_link]
-subject = "Ton code de connexion adhd-material"
-content_path = "./supabase/templates/magic_link.html"
-
-[auth.email.template.confirmation]
-subject = "Bienvenue sur adhd-material : ton code de connexion"
-content_path = "./supabase/templates/confirmation.html"
+# Décision 26 : modèles désactivés tant qu'aucun SMTP perso n'est branché (l'offre gratuite refuse
+# leur modification, et le refus bloque toute la mise à jour Auth de `config push`). Pour les réactiver :
+# configurer le SMTP ([auth.email.smtp]) puis décommenter ces deux blocs.
+# [auth.email.template.magic_link]
+# subject = "Ton code de connexion adhd-material"
+# content_path = "./supabase/templates/magic_link.html"
+#
+# [auth.email.template.confirmation]
+# subject = "Bienvenue sur adhd-material : ton code de connexion"
+# content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -451,3 +454,8 @@ project_id = "hqatuzoeytqfbilnzggp"
 
 [remotes.production.auth.external.google]
 skip_nonce_check = false
+
+# Décision 26 : connexion Google uniquement sur le cloud tant qu'aucun SMTP perso n'est branché
+# (les modèles d'email avec code OTP sont refusés en offre gratuite). L'email reste actif en local.
+[remotes.production.auth.email]
+enabled = false

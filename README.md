@@ -38,6 +38,16 @@ npm run dev                  # http://localhost:5173
 | `npm test`                    | Tests Vitest (jsdom)                             |
 | `npm run generate-pwa-assets` | Régénère les icônes PWA depuis `public/logo.svg` |
 
+## Connexion
+
+La connexion se fait par **Google uniquement** (décision 26) : sur Supabase cloud en offre gratuite, les modèles d'email personnalisés (code à 8 chiffres) sont refusés sans SMTP perso. Le flux email reste dans le code, désactivé par défaut, et actif sur la stack locale (`supabase start`).
+
+Pour réactiver la connexion par email :
+
+1. brancher un SMTP perso dans Supabase (Authentication > SMTP) ;
+2. décommenter les modèles d'email dans `supabase/config.toml` (`[auth.email.template.*]`) et les pousser ;
+3. définir `VITE_AUTH_EMAIL_ENABLED=true` (valeur exacte `true`) dans l'environnement du front.
+
 ## Déploiement (Vercel)
 
 - Importer le dépôt dans Vercel (preset Vite). `vercel.json` gère la réécriture SPA, les en-têtes de sécurité (CSP en mode Report-Only) et le cache.

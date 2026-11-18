@@ -19,7 +19,10 @@ function mockProfile(profile: { display_name: string; display_name_confirmed: bo
   });
 }
 
+afterEach(() => vi.unstubAllEnvs());
+
 beforeEach(() => {
+  vi.stubEnv("VITE_AUTH_EMAIL_ENABLED", "true");
   supabaseMock.resetMocks();
   localStorage.clear();
 });
@@ -110,7 +113,7 @@ describe("gardes de routes", () => {
     const { router } = renderApp(routes, "/profil");
     await waitFor(() => expect(router.state.location.pathname).toBe("/connexion"));
     expect(router.state.location.search).toBe("?suivant=%2Fprofil");
-    expect(screen.getByRole("heading", { name: "Connexion" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Connexion" })).toBeInTheDocument();
   });
 
   it("renvoie vers /bienvenue tant que le pseudo n'est pas confirmé", async () => {

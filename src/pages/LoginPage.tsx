@@ -3,6 +3,7 @@ import { CodeStep } from "@/features/auth/CodeStep";
 import { EmailForm } from "@/features/auth/EmailForm";
 import { GoogleButton } from "@/features/auth/GoogleButton";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { isEmailAuthEnabled } from "@/lib/features";
 import { sendEmailCode } from "@/services/auth";
 
 // Une fois le code validé, la session met à jour le contexte et GuestOnly redirige vers la page demandée.
@@ -10,6 +11,22 @@ export function LoginPage() {
   useDocumentTitle("Connexion");
   const [email, setEmail] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const emailEnabled = isEmailAuthEnabled();
+
+  if (!emailEnabled) {
+    return (
+      <section className="mx-auto max-w-sm space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">Connexion</h1>
+          <p className="text-muted-foreground">
+            On utilise ton compte Google uniquement pour te connecter : ton nom n'est jamais
+            affiché.
+          </p>
+        </div>
+        <GoogleButton />
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-sm space-y-6">
