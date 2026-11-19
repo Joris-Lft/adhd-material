@@ -15,6 +15,8 @@ export const VERIFY_RATE_LIMIT = "Trop d'essais. Patiente un peu avant de réess
 export const SEND_RATE_LIMIT = "Patiente un peu avant de redemander un code.";
 export const SIGN_OUT_FAILED = "La déconnexion a échoué. Réessaie dans un instant.";
 
+const RATE_LIMIT_FALLBACK = "Trop de tentatives, réessaie dans un instant.";
+
 export const DISPLAY_NAME_TAKEN = "Ce pseudo est déjà pris";
 export const DISPLAY_NAME_UNAVAILABLE = "Ce pseudo n'est pas disponible";
 export const DISPLAY_NAME_LENGTH = "Entre 3 et 30 caractères";
@@ -47,7 +49,7 @@ export function mapVerifyError(error: ErrorLike): string {
 /** Erreur PostgREST lors de la mise à jour du pseudo. */
 export function mapDisplayNameError(error: ErrorLike): string {
   if (error.code === "PT429" || error.status === 429) {
-    return error.message || "Trop de tentatives, réessaie dans un instant.";
+    return error.message || RATE_LIMIT_FALLBACK;
   }
   if (error.code === "23505") return DISPLAY_NAME_TAKEN;
   if (error.code === "23514") {
@@ -56,4 +58,38 @@ export function mapDisplayNameError(error: ErrorLike): string {
       : DISPLAY_NAME_LENGTH;
   }
   return DISPLAY_NAME_SAVE_FAILED;
+}
+
+export const SEARCH_FAILED = "La recherche n'a pas abouti. Réessaie dans un instant.";
+export const CITY_SAVE_FAILED = "L'enregistrement a échoué. Réessaie dans un instant.";
+export const CITY_UNKNOWN = "Cette ville n'existe pas. Choisis-en une dans la liste.";
+export const ACTIVITY_CREATE_FAILED =
+  "La création de l'activité a échoué. Réessaie dans un instant.";
+export const ACTIVITY_NAME_LENGTH = "Le nom d'une activité doit faire entre 2 et 60 caractères.";
+export const ACTIVITY_NAME_INVALID =
+  "Ce nom d'activité n'est pas valide. Utilise au moins 2 lettres ou chiffres.";
+
+function isNetworkError(error: ErrorLike): boolean {
+  return (
+    error.status === 0 || /failed to fetch|networkerror|load failed/i.test(error.message ?? "")
+  );
+}
+
+/** Erreur PostgREST lors de la mise à jour de la ville du profil. */
+export function mapCityError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  if (error.code === "23503") return CITY_UNKNOWN;
+  return CITY_SAVE_FAILED;
+}
+
+/** Erreur PostgREST lors de la création d'une activité. */
+export function mapActivityError(error: ErrorLike): string {
+  if (error.code === "PT429" || error.status === 429) return error.message || RATE_LIMIT_FALLBACK;
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  if (error.code === "23514") {
+    return error.message?.includes("activities_name_normalized_length")
+      ? ACTIVITY_NAME_INVALID
+      : ACTIVITY_NAME_LENGTH;
+  }
+  return ACTIVITY_CREATE_FAILED;
 }

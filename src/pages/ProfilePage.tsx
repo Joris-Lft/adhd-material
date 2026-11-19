@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { PageLoader } from "@/components/layout/PageLoader";
 import { ProfileUnavailable } from "@/components/layout/ProfileUnavailable";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { CityForm } from "@/features/profile/CityForm";
 import { DeleteAccountSection } from "@/features/profile/DeleteAccountSection";
 import { DisplayNameForm } from "@/features/profile/DisplayNameForm";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -36,14 +37,22 @@ export function ProfilePage() {
         <ProfileUnavailable missing={!isError} onRetry={() => refetch()} retrying={isFetching} />
       )}
       {profile && (
-        <DisplayNameForm
-          // Le pseudo enregistré redevient la valeur de départ après une sauvegarde.
-          key={profile.display_name}
-          initialValue={profile.display_name}
-          submitLabel="Enregistrer"
-          requireChange
-          onSaved={() => toast.success("Pseudo enregistré")}
-        />
+        <>
+          <DisplayNameForm
+            // Le pseudo enregistré redevient la valeur de départ après une sauvegarde.
+            key={profile.display_name}
+            initialValue={profile.display_name}
+            submitLabel="Enregistrer"
+            requireChange
+            onSaved={() => toast.success("Pseudo enregistré")}
+          />
+          <section aria-labelledby="city-heading" className="space-y-4">
+            <h2 id="city-heading" className="text-lg font-semibold">
+              Ma ville
+            </h2>
+            <CityForm cityId={profile.city_id} />
+          </section>
+        </>
       )}
       <LoadingButton type="button" variant="outline" loading={signingOut} onClick={onSignOut}>
         Se déconnecter

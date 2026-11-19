@@ -18,3 +18,9 @@ export function renderApp(routes: RouteObject[], path: string) {
   );
   return { router, queryClient };
 }
+
+/** Rendu avec TanStack Query seulement, pour les composants sans routeur ni session. */
+export function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}

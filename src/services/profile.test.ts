@@ -1,6 +1,6 @@
 import { queryResult, supabaseMock } from "@/test/supabase-mock";
 import { mapDisplayNameError } from "@/lib/messages";
-import { DisplayNameError, updateDisplayName } from "./profile";
+import { CityError, DisplayNameError, updateCity, updateDisplayName } from "./profile";
 
 vi.mock("@/lib/supabase", async () => ({
   supabase: (await import("@/test/supabase-mock")).supabaseMock,
@@ -68,5 +68,59 @@ describe("updateDisplayName", () => {
   it("exige exactement une ligne mise à jour", async () => {
     supabaseMock.from.mockReturnValue(queryResult({ data: [], error: null }).builder);
     await expect(updateDisplayName("u1", "Alex")).rejects.toBeInstanceOf(DisplayNameError);
+  });
+});
+
+describe("updateCity", () => {
+  beforeEach(() => supabaseMock.resetMocks());
+
+  it('met à jour city_id avec .select("id") seulement, et filtre sur l\'id', async () => {
+    const { builder, calls } = queryResult({ data: [{ id: "u1" }], error: null });
+    supabaseMock.from.mockReturnValue(builder);
+    await updateCity("u1", "c1");
+    expect(supabaseMock.from).toHaveBeenCalledWith("profiles");
+    expect(calls).toEqual([
+      { method: "update", args: [{ city_id: "c1" }] },
+      { method: "eq", args: ["id", "u1"] },
+      { method: "select", args: ["id"] },
+    ]);
+  });
+
+  it("accepte null pour retirer la ville", async () => {
+    const { builder, calls } = queryResult({ data: [{ id: "u1" }], error: null });
+    supabaseMock.from.mockReturnValue(builder);
+    await updateCity("u1", null);
+    expect(calls[0]).toEqual({ method: "update", args: [{ city_id: null }] });
+  });
+
+  it("exige exactement une ligne mise à jour", async () => {
+    supabaseMock.from.mockReturnValue(queryResult({ data: [], error: null }).builder);
+    await expect(updateCity("u1", "c1")).rejects.toBeInstanceOf(CityError);
+  });
+
+  it("ville inconnue (23503)", async () => {
+    supabaseMock.from.mockReturnValue(
+      queryResult({ data: null, error: { code: "23503", message: "fk" } }).builder,
+    );
+    await expect(updateCity("u1", "c1")).rejects.toThrow(
+      new CityError("Cette ville n'existe pas. Choisis-en une dans la liste."),
+    );
+  });
+
+  it("erreur réseau", async () => {
+    supabaseMock.from.mockReturnValue(
+      queryResult({ data: null, error: { code: "", message: "TypeError: Failed to fetch" } })
+        .builder,
+    );
+    await expect(updateCity("u1", "c1")).rejects.toThrow(
+      new CityError("Pas de connexion pour l'instant. Vérifie ton réseau et réessaie."),
+    );
+  });
+
+  it("autre erreur : message générique", async () => {
+    supabaseMock.from.mockReturnValue(
+      queryResult({ data: null, error: { code: "XX000" } }).builder,
+    );
+    await expect(updateCity("u1", "c1")).rejects.toThrow(/Réessaie/);
   });
 });
