@@ -123,6 +123,9 @@ export function Combobox<T extends ComboboxOption>({
         if (expanded && option) {
           event.preventDefault();
           select(option);
+        } else if (suggestionsEnabled && inputValue.trim()) {
+          // Texte saisi sans choix : Entrée ne doit pas soumettre le formulaire.
+          event.preventDefault();
         }
         return;
       }

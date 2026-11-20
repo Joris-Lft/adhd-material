@@ -39,13 +39,18 @@ insert into public.listings (id, owner_id, activity_id, kind, city_id, descripti
   ('b0000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'a0000000-0000-0000-0000-000000000003', 'don',
    (select id from public.cities where insee_code = '69123'), 'Guitare classique 3/4 avec housse.', null);
 
+-- Fichiers Storage factices (métadonnées seules, sans contenu) : le trigger listing_photos_check_file
+-- exige un objet existant du bon propriétaire pour chaque photo. Les images seront cassées tant qu'on
+-- n'uploade pas de vraies photos dans le bucket listing-photos (chemin {uid}/{nom}.jpg).
+insert into storage.objects (bucket_id, name, owner, owner_id) values
+  ('listing-photos', '11111111-1111-1111-1111-111111111111/crochet-1.jpg', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111'),
+  ('listing-photos', '11111111-1111-1111-1111-111111111111/aquarelle-1.jpg', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111'),
+  ('listing-photos', '22222222-2222-2222-2222-222222222222/guitare-1.jpg', '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222');
+
 insert into public.listing_photos (listing_id, storage_path, position) values
   ('b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/crochet-1.jpg', 1),
+  ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/aquarelle-1.jpg', 1),
   ('b0000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222/guitare-1.jpg', 1);
-
--- Les lignes listing_photos ci-dessus référencent des chemins Storage qui n'existent PAS en local
--- (aucun fichier uploadé) : les images seront cassées tant qu'on n'uploade pas de vraies photos
--- dans le bucket listing-photos (chemin {uid}/{nom}.jpg).
 
 -- Bob écrit à Alice au sujet du crochet.
 insert into public.conversations (id, listing_id, requester_id) values

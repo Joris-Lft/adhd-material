@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Link, Outlet, ScrollRestoration } from "react-router";
-import { Package, User } from "lucide-react";
+import { Package, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/useSession";
 import { useFocusHeadingOnNavigation } from "@/hooks/useFocusHeadingOnNavigation";
@@ -50,9 +50,15 @@ export function AppLayout() {
         <div className="mx-auto flex h-16 w-full max-w-3xl items-center justify-between gap-2 px-4">
           <Link to="/" className="flex min-h-11 items-center gap-2 font-semibold">
             <Package className="size-5 text-primary" aria-hidden="true" />
-            adhd-material
+            <span className="sr-only sm:not-sr-only">adhd-material</span>
           </Link>
-          <nav aria-label="Navigation principale">
+          <nav aria-label="Navigation principale" className="flex items-center gap-2">
+            <Button asChild size="sm">
+              <Link to="/publier">
+                <Plus aria-hidden="true" />
+                Publier
+              </Link>
+            </Button>
             <AccountLink />
           </nav>
         </div>

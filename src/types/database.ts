@@ -242,6 +242,9 @@ isOneToOne: false
             "clean_text":
 { Args: { "t": string }; Returns: string
                            },
+"create_listing":
+{ Args: { "p_activity_id": string,"p_city_id": string,"p_description"?: string,"p_experience"?: string,"p_kind": Database["public"]['Enums']["listing_kind"],"p_photo_paths": (string)[] }; Returns: string
+                           },
 "get_my_profile":
 { Args: Record<PropertyKey, never>; Returns: {
               "city_id": string,"display_name": string,"display_name_confirmed": boolean,"id": string

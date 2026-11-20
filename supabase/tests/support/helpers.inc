@@ -32,14 +32,19 @@ $$;
 -- Fixtures (en tant que postgres). Les communes viennent de la migration du référentiel.
 --   utilisateurs : alice (1111..), bob (2222..), carol (3333..)
 --   L1 alice don Paris | L2 alice pret Versailles | L3 bob don Lyon | L4 alice don Paris ARCHIVÉE
---   activités : Crochet (a..01), Aquarelle (a..02) ; une photo sur L1 et L4
+--   activités : Crochet (a..01), Aquarelle (a..02) ; une photo (+ fichier Storage) sur chaque annonce
 create function tests.setup() returns void language plpgsql as $$
 begin
   perform tests.act_admin();
   delete from public.reports;
+  perform set_config('storage.allow_delete_query', 'true', true);  -- purge des fichiers du seed
+  delete from storage.objects where bucket_id = 'listing-photos';
   delete from public.listings;
   delete from public.activities;
   delete from auth.users;
+  -- vide la file des contraintes différées déclenchées par les suppressions ci-dessus (annonces recréées plus bas)
+  set constraints listings_require_photo, listing_photos_require_photo immediate;
+  set constraints listings_require_photo, listing_photos_require_photo deferred;
 
   insert into auth.users (id, email, aud, role) values
     ('11111111-1111-1111-1111-111111111111', 'alice@example.test', 'authenticated', 'authenticated'),
@@ -53,6 +58,13 @@ begin
     ('a0000000-0000-0000-0000-000000000001', 'Crochet'),
     ('a0000000-0000-0000-0000-000000000002', 'Aquarelle');
 
+  -- Fichiers Storage réels (métadonnées) pour chaque photo : le trigger listing_photos_check_file les exige.
+  insert into storage.objects (bucket_id, name, owner, owner_id) values
+    ('listing-photos', '11111111-1111-1111-1111-111111111111/a.jpg',  '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111'),
+    ('listing-photos', '11111111-1111-1111-1111-111111111111/l2.jpg', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111'),
+    ('listing-photos', '11111111-1111-1111-1111-111111111111/z.jpg',  '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111'),
+    ('listing-photos', '22222222-2222-2222-2222-222222222222/l3.jpg', '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222');
+
   insert into public.listings (id, owner_id, activity_id, kind, city_id) values
     ('b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'a0000000-0000-0000-0000-000000000001', 'don',  tests.city('75056')),
     ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a0000000-0000-0000-0000-000000000002', 'pret', tests.city('78646')),
@@ -62,7 +74,34 @@ begin
 
   insert into public.listing_photos (listing_id, storage_path, position) values
     ('b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/a.jpg', 1),
+    ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/l2.jpg', 1),
+    ('b0000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222/l3.jpg', 1),
     ('b0000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111/z.jpg', 1);
+end $$;
+
+-- Exécute une instruction puis force la vérification des contraintes différées (constraint triggers) :
+-- les tests ne committent jamais, il faut simuler la fin de transaction. Lève l'erreur de la contrainte.
+create function tests.exec_checked(p_sql text) returns void language plpgsql as $$
+begin
+  execute p_sql;
+  set constraints listings_require_photo, listing_photos_require_photo immediate;
+  set constraints listings_require_photo, listing_photos_require_photo deferred;
+end $$;
+
+-- Exécute une instruction attendue en erreur et renvoie 'SQLSTATE/hint' (ou 'no error'). Avec
+-- p_flush, vérifie aussi les contraintes différées. L'écriture partielle est annulée (sous-transaction).
+create function tests.err(p_sql text, p_flush boolean default false) returns text language plpgsql as $$
+declare v_state text; v_hint text;
+begin
+  execute p_sql;
+  if p_flush then
+    set constraints listings_require_photo, listing_photos_require_photo immediate;
+    set constraints listings_require_photo, listing_photos_require_photo deferred;
+  end if;
+  return 'no error';
+exception when others then
+  get stacked diagnostics v_state = returned_sqlstate, v_hint = pg_exception_hint;
+  return v_state || '/' || coalesce(v_hint, '');
 end $$;
 
 -- Ouvre (en tant que postgres) une conversation requester -> annonce et renvoie son id.

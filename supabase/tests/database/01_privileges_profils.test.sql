@@ -25,13 +25,13 @@ select is(array(
 select is(array(
   select p.proname::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname in ('public', 'private') and has_function_privilege('authenticated', p.oid, 'execute') order by 1
-), array['clean_text', 'conversation_has_both_parties', 'get_my_profile', 'normalize_place', 'normalize_text', 'search_activities', 'search_cities', 'search_listings', 'shares_conversation_with']::text[],
+), array['clean_text', 'conversation_has_both_parties', 'create_listing', 'get_my_profile', 'listing_photo_in_use', 'normalize_place', 'normalize_text', 'search_activities', 'search_cities', 'search_listings', 'shares_conversation_with']::text[],
   'fonctions exécutables par authenticated : liste blanche (aucune fonction de trigger)');
 
 -- ======================= anon : lecture seule, profil public minimal
 select tests.act_anon();
 select is((select count(*) from public.listings), 3::bigint, 'anon lit les annonces non archivées');
-select is((select count(*) from public.listing_photos), 1::bigint, 'anon lit les photos des annonces visibles seulement');
+select is((select count(*) from public.listing_photos), 3::bigint, 'anon lit les photos des annonces visibles seulement');
 select cmp_ok((select count(*) from public.cities), '>', 30000::bigint, 'anon lit le référentiel des communes');
 select is((select count(*) from public.activities), 2::bigint, 'anon lit les activités');
 select is((select count(*) from public.profiles), 2::bigint, 'anon ne voit que les membres ayant une annonce visible (pas carol)');

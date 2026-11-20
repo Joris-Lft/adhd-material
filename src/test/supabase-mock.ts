@@ -69,6 +69,7 @@ export function createSupabaseMock() {
     rpc: vi.fn(),
     from: vi.fn(),
     functions: { invoke: vi.fn() },
+    storage: { from: vi.fn() },
     /** Définit la session de départ (avant le rendu) ou émet un changement. */
     setSession(session: Session | null, event?: string) {
       current = session;
@@ -84,6 +85,7 @@ export function createSupabaseMock() {
       mock.rpc.mockReset();
       mock.from.mockReset();
       mock.functions.invoke.mockReset();
+      mock.storage.from.mockReset();
     },
   };
   return mock;

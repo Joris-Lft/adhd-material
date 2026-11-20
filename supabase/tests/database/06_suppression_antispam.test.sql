@@ -40,7 +40,7 @@ delete from auth.users where id = '11111111-1111-1111-1111-111111111111';
 select is((select count(*) from public.profiles where id = '11111111-1111-1111-1111-111111111111'), 0::bigint, 'profil supprimé avec le compte');
 select is((select count(*) from public.listings where owner_id is null and status = 'archivee'), 3::bigint, 'annonces conservées, anonymisées (owner_id null) et archivées');
 select is((select count(*) from public.listings where description is not null or experience is not null), 0::bigint, 'description et retour d''expérience purgés');
-select is((select count(*) from public.listing_photos), 0::bigint, 'lignes listing_photos supprimées');
+select is((select count(*) from public.listing_photos where storage_path like '11111111-%'), 0::bigint, 'lignes listing_photos du compte supprimées');
 select results_eq($$select returned_at is not null, borrower_id from public.loans$$, $$values (true, '22222222-2222-2222-2222-222222222222'::uuid)$$, 'prêt ouvert clôturé automatiquement, l''emprunteur est conservé');
 select is((select count(*) from public.conversations), 2::bigint, 'conversations conservées');
 select is((select count(*) from public.messages where sender_id is null), 1::bigint, 'message du membre supprimé conservé, expéditeur anonymisé');

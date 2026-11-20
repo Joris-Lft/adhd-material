@@ -1,7 +1,11 @@
 begin;
 \ir ../support/helpers.inc
-select plan(63);
+select plan(72);
 select tests.setup();
+-- Fichiers Storage des photos insérées ci-dessous (le trigger exige un objet du propriétaire de l'annonce).
+insert into storage.objects (bucket_id, name, owner, owner_id)
+  select 'listing-photos', '11111111-1111-1111-1111-111111111111/' || n, '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111'
+  from unnest(array['b.jpg', 'c.webp', 'd.jpg', 'e.jpg', 'ok_1-2.png']) n;
 
 -- ======================= photos : 1 à 3 par annonce, chemin {uid}/{nom}.{ext}
 select tests.act_as('11111111-1111-1111-1111-111111111111');
@@ -12,17 +16,18 @@ select throws_ok($$insert into public.listing_photos (listing_id, storage_path, 
 select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/../22222222-2222-2222-2222-222222222222/x.jpg', 1)$$, '23514', null, 'path traversal refusé');
 select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/sous/x.jpg', 1)$$, '23514', null, 'sous-dossier refusé');
 select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/x.gif', 1)$$, '23514', null, 'extension non image refusée');
-select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222/x.jpg', 1)$$, '42501', null, 'chemin dans le dossier d''un autre refusé');
-select lives_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/ok_1-2.png', 1)$$, 'chemin valide');
+select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222/x.jpg', 1)$$, '23503', null, 'chemin dans le dossier d''un autre refusé (aucun fichier du propriétaire de l''annonce)');
+select lives_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/ok_1-2.png', 2)$$, 'chemin valide');
 
 select tests.act_as('22222222-2222-2222-2222-222222222222');
-select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222/x.jpg', 1)$$, '42501', null, 'bob ne peut pas ajouter de photo à l''annonce d''alice');
-select is_empty($$delete from public.listing_photos returning 1$$, 'bob ne supprime pas les photos d''alice');
-select is_empty($$update public.listing_photos set position = 3 returning 1$$, 'bob ne modifie pas les photos d''alice');
-select is((select count(*) from public.listing_photos), 4::bigint, 'bob voit les photos des annonces visibles (pas celles de l''archivée)');
+select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222/x.jpg', 1)$$, '42501', null, 'bob ne peut pas ajouter de photo à l''annonce d''alice (la RLS refuse, rien sur le fichier)');
+select is_empty($$delete from public.listing_photos where storage_path like '11111111-%' returning 1$$, 'bob ne supprime pas les photos d''alice');
+select is_empty($$update public.listing_photos set position = 3 where storage_path like '11111111-%' returning 1$$, 'bob ne modifie pas les photos d''alice');
+select is((select count(*) from public.listing_photos), 6::bigint, 'bob voit les photos des annonces visibles (pas celles de l''archivée)');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
-select is((select count(*) from public.listing_photos), 5::bigint, 'alice voit aussi la photo de son annonce archivée');
-select results_eq($$delete from public.listing_photos where listing_id = 'b0000000-0000-0000-0000-000000000001' returning 1$$, $$values (1),(1),(1)$$, 'alice supprime les photos de son annonce');
+select is((select count(*) from public.listing_photos), 7::bigint, 'alice voit aussi la photo de son annonce archivée');
+select is(tests.err($e$delete from public.listing_photos where listing_id = 'b0000000-0000-0000-0000-000000000001'$e$, true), '23514/listing_photo_required', 'alice ne peut pas retirer toutes les photos d''une annonce disponible');
+select lives_ok($$select tests.exec_checked($q$delete from public.listing_photos where listing_id = 'b0000000-0000-0000-0000-000000000001' and position > 1$q$)$$, 'alice supprime des photos de son annonce, il en reste une');
 
 -- ======================= prêts
 select tests.act_admin();
@@ -72,6 +77,7 @@ select tests.act_as('11111111-1111-1111-1111-111111111111');
 select results_eq($$update public.loans set returned_at = now() + interval '10 years' returning returned_at <= now()$$, $$values (true)$$, 'returned_at forcé à now() par le serveur');
 select results_eq($$update public.loans set returned_at = '2000-01-01' returning returned_at > '2001-01-01'$$, $$values (true)$$, 'returned_at posé une seule fois');
 select is((select status::text from public.listings where id = 'b0000000-0000-0000-0000-000000000002'), 'disponible', 'retour : l''annonce redevient disponible');
+select lives_ok($$select tests.exec_checked($q$select 1$q$)$$, 'retour de prêt (pretee -> disponible via loan_sync) : contraintes différées satisfaites');
 
 -- ======================= prêt supprimé / emprunteur supprimé
 select tests.act_admin();
@@ -103,9 +109,9 @@ select throws_ok($$insert into storage.objects (bucket_id, name, owner_id) value
 select throws_ok($$insert into storage.objects (bucket_id, name, owner_id) values ('listing-photos', '11111111-1111-1111-1111-111111111111/x/t.jpg', '11111111-1111-1111-1111-111111111111')$$, '42501', null, 'sous-dossier refusé');
 select throws_ok($$insert into storage.objects (bucket_id, name, owner_id) values ('listing-photos', '11111111-1111-1111-1111-111111111111/t.html', '11111111-1111-1111-1111-111111111111')$$, '42501', null, 'extension non image refusée');
 select throws_ok($$update storage.objects set name = '22222222-2222-2222-2222-222222222222/vol.jpg' where name = '11111111-1111-1111-1111-111111111111/t.jpg'$$, '42501', null, 'déplacer son fichier vers le dossier d''un autre refusé');
-select is((select count(*) from storage.objects where bucket_id = 'listing-photos'), 2::bigint, 'alice voit ses fichiers');
+select is((select count(*) from storage.objects where bucket_id = 'listing-photos'), 10::bigint, 'alice voit ses fichiers (fixtures, crochet, t, photos du test)');
 select tests.act_as('22222222-2222-2222-2222-222222222222');
-select is((select count(*) from storage.objects where bucket_id = 'listing-photos'), 0::bigint, 'bob ne voit pas les fichiers d''alice');
+select is((select count(*) from storage.objects where bucket_id = 'listing-photos' and name like '11111111-%'), 0::bigint, 'bob ne voit pas les fichiers d''alice');
 select is_empty($$update storage.objects set name = '22222222-2222-2222-2222-222222222222/vol.jpg' where name = '11111111-1111-1111-1111-111111111111/crochet.jpg' returning 1$$, 'bob ne déplace pas le fichier d''alice');
 select is_empty($$update storage.objects set metadata = '{}' where name = '11111111-1111-1111-1111-111111111111/crochet.jpg' returning 1$$, 'bob n''écrase pas le fichier d''alice');
 select set_config('storage.allow_delete_query', 'true', true);
@@ -117,6 +123,20 @@ select throws_ok($$insert into storage.objects (bucket_id, name) values ('listin
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 select set_config('storage.allow_delete_query', 'true', true);
 select results_eq($$delete from storage.objects where name = '11111111-1111-1111-1111-111111111111/t.jpg' returning 1$$, $$values (1)$$, 'alice supprime son fichier');
+
+-- ======================= trigger de fichier : rien n'est révélé à un tiers
+select tests.act_as('22222222-2222-2222-2222-222222222222');
+select is(tests.err($e$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/d.jpg', 2)$e$), '42501/', 'bob vise l''annonce d''alice avec un fichier existant d''alice : refus RLS');
+select is(tests.err($e$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/inexistant.jpg', 2)$e$), '42501/', 'même erreur avec un fichier inexistant : aucune différence observable');
+
+-- ======================= un fichier référencé par une photo ne se supprime pas
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+select set_config('storage.allow_delete_query', 'true', true);
+select is_empty($$delete from storage.objects where name = '11111111-1111-1111-1111-111111111111/a.jpg' returning 1$$, 'fichier référencé par une annonce : suppression sans effet');
+select is_empty($$delete from storage.objects where name = '11111111-1111-1111-1111-111111111111/z.jpg' returning 1$$, 'fichier référencé par une annonce archivée (propriétaire) : suppression sans effet');
+select results_eq($$delete from storage.objects where name = '11111111-1111-1111-1111-111111111111/d.jpg' returning 1$$, $$values (1)$$, 'fichier non référencé : supprimable');
+select lives_ok($$select tests.exec_checked($q$delete from public.listing_photos where storage_path = '11111111-1111-1111-1111-111111111111/ok_1-2.png'$q$)$$, 'photo retirée (il en reste une sur l''annonce)');
+select results_eq($$delete from storage.objects where name = '11111111-1111-1111-1111-111111111111/ok_1-2.png' returning 1$$, $$values (1)$$, 'fichier devenu non référencé : supprimable');
 
 select * from finish();
 rollback;

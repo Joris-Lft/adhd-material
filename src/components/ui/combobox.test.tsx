@@ -126,6 +126,47 @@ describe("Combobox", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  describe("Entrée dans un formulaire", () => {
+    function FormHarness({ text, enabled }: { text: string; enabled: boolean }) {
+      const [value, setValue] = useState(text);
+      return (
+        <form onSubmit={(event) => event.preventDefault()}>
+          <Combobox
+            label="Activité"
+            options={ALL}
+            inputValue={value}
+            suggestionsEnabled={enabled}
+            onInputChange={setValue}
+            onSelectOption={() => {}}
+          />
+          <button type="submit">Envoyer</button>
+        </form>
+      );
+    }
+
+    async function pressEnter(text: string, enabled: boolean) {
+      const user = userEvent.setup();
+      const submit = vi.fn((event: Event) => event.preventDefault());
+      render(<FormHarness text={text} enabled={enabled} />);
+      screen.getByRole("combobox").closest("form")!.addEventListener("submit", submit);
+      await user.click(screen.getByRole("combobox"));
+      await user.keyboard("{Enter}");
+      return submit;
+    }
+
+    it("texte saisi sans valeur choisie : ne soumet pas", async () => {
+      expect(await pressEnter("Cr", true)).not.toHaveBeenCalled();
+    });
+
+    it("champ vide : soumet comme avant", async () => {
+      expect(await pressEnter("", true)).toHaveBeenCalledTimes(1);
+    });
+
+    it("valeur déjà choisie : soumet comme avant", async () => {
+      expect(await pressEnter("Crochet", false)).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("Échap ferme la liste sans effacer la saisie ; ArrowDown la rouvre", async () => {
     const user = userEvent.setup();
     render(<Harness />);

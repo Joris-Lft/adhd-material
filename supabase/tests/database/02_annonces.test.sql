@@ -1,14 +1,21 @@
 begin;
 \ir ../support/helpers.inc
-select plan(13);
+select plan(14);
 select tests.setup();
+insert into storage.objects (bucket_id, name, owner, owner_id) values
+  ('listing-photos', '22222222-2222-2222-2222-222222222222/s1.jpg', '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222');
 
 select tests.act_as('22222222-2222-2222-2222-222222222222');
+-- Un UPDATE client doit passer par un trigger de nettoyage en security definer. plpgsql garde en cache
+-- les expressions déjà exécutées dans la transaction (les fixtures l'ont fait en postgres, sans contrôle
+-- des droits) : on vide les plans pour que authenticated soit réellement contrôlé.
+discard plans;
+select results_eq($$update public.listings set description = E'  Salut\u202E\u200B\r\n\r\n  toi  ', experience = E'\u2028' where id = 'b0000000-0000-0000-0000-000000000003' returning description, experience$$, $$values (E'Salut\n\ntoi', null::text)$$, 'UPDATE client de description/experience : nettoyé (trigger definer)');
 select is_empty($$update public.listings set description = 'pirate' where id = 'b0000000-0000-0000-0000-000000000001' returning 1$$, 'bob ne modifie pas l''annonce d''alice');
 select throws_ok($$delete from public.listings where id = 'b0000000-0000-0000-0000-000000000001'$$, '42501', null, 'aucune suppression d''annonce côté client (on archive)');
-select throws_ok($$insert into public.listings (owner_id, activity_id, kind, city_id) values ('11111111-1111-1111-1111-111111111111', 'a0000000-0000-0000-0000-000000000001', 'don', tests.city('75056'))$$, '42501', null, 'bob ne publie pas au nom d''alice');
-select throws_ok($$insert into public.listings (activity_id, kind, city_id, status) values ('a0000000-0000-0000-0000-000000000001', 'don', tests.city('75056'), 'donnee')$$, '42501', null, 'status non fournissable à la création');
-select results_eq($$insert into public.listings (activity_id, kind, city_id) values ('a0000000-0000-0000-0000-000000000002', 'pret', tests.city('75056')) returning owner_id, status::text$$, $$values ('22222222-2222-2222-2222-222222222222'::uuid, 'disponible'::text)$$, 'owner_id = auth.uid() et statut disponible par défaut');
+select throws_ok($$insert into public.listings (activity_id, kind, city_id) values ('a0000000-0000-0000-0000-000000000002', 'pret', tests.city('75056'))$$, '42501', null, 'insertion directe refusée (aucun grant INSERT) : publication uniquement via create_listing');
+select lives_ok($$select set_config('tests.l', public.create_listing('a0000000-0000-0000-0000-000000000002', 'pret', tests.city('75056'), array['22222222-2222-2222-2222-222222222222/s1.jpg'])::text, true)$$, 'bob publie via create_listing');
+select results_eq($$select owner_id, status::text from public.listings where id = current_setting('tests.l')::uuid$$, $$values ('22222222-2222-2222-2222-222222222222'::uuid, 'disponible'::text)$$, 'owner_id = auth.uid() et statut disponible');
 select is((select count(*) from public.listings where id = 'b0000000-0000-0000-0000-000000000004'), 0::bigint, 'annonce archivée invisible des tiers');
 
 select tests.act_as('11111111-1111-1111-1111-111111111111');

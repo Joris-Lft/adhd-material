@@ -4,6 +4,8 @@ interface ErrorLike {
   name?: string;
   code?: string;
   status?: number;
+  statusCode?: string;
+  hint?: string;
   message?: string;
 }
 
@@ -92,4 +94,107 @@ export function mapActivityError(error: ErrorLike): string {
       : ACTIVITY_NAME_LENGTH;
   }
   return ACTIVITY_CREATE_FAILED;
+}
+
+// --- Publication d'une annonce ---
+
+export type ListingField = "activity" | "kind" | "city" | "photos" | "details";
+
+export const LISTING_ACTIVITY_REQUIRED = "Choisis une activité dans la liste ou propose-en une.";
+export const LISTING_KIND_REQUIRED = "Dis-nous si tu donnes ou si tu prêtes.";
+export const LISTING_PHOTOS_REQUIRED = "Ajoute au moins une photo.";
+export const LISTING_PHOTOS_MAX = "Tu peux ajouter 3 photos au maximum.";
+export const LISTING_CITY_REQUIRED = "Choisis une ville dans la liste.";
+export const LISTING_TEXT_MAX = "2000 caractères au maximum.";
+export const LISTING_TEXTS_TOO_LONG =
+  "La description et l'expérience sont limitées à 2000 caractères chacune.";
+export const LISTING_UNCONFIRMED =
+  "On n'a pas pu confirmer la publication. Vérifie ta connexion avant de réessayer : l'annonce est peut-être déjà en ligne.";
+export const PHOTO_PROCESS_FAILED =
+  "Les photos n'ont pas pu être préparées. Réessaie dans un instant.";
+export const LISTING_SESSION_EXPIRED =
+  "Ta session a expiré. Reconnecte-toi pour publier ton annonce.";
+export const PHOTO_UPLOAD_FAILED = "L'envoi des photos a échoué. Réessaie dans un instant.";
+export const PHOTO_UPLOAD_TOO_HEAVY = "Une photo est trop lourde pour être envoyée.";
+export const PHOTO_FORMAT_UNSUPPORTED =
+  "Une photo est dans un format non pris en charge. Utilise JPEG, PNG ou WebP.";
+export const PHOTO_MISSING = "Une photo n'a pas été envoyée : réessaie l'envoi.";
+export const PHOTO_ALREADY_USED = "Une de ces photos est déjà utilisée par une annonce.";
+export const PHOTO_LIMIT_IGNORED =
+  "Tu peux ajouter 3 photos au maximum : les autres ont été ignorées.";
+
+export const photoFormatMessage = (name: string) =>
+  `« ${name} » : format non pris en charge. Utilise une image JPEG, PNG ou WebP.`;
+export const photoTooHeavyMessage = (name: string) =>
+  `« ${name} » est trop lourde, même après compression. Choisis une image plus légère.`;
+export const photoUnreadableMessage = (name: string) =>
+  `« ${name} » n'a pas pu être lue. Essaie avec une autre image.`;
+
+/** Erreur du Storage lors de l'envoi d'une photo. */
+export function mapPhotoUploadError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  if (error.status === 413 || error.statusCode === "413") return PHOTO_UPLOAD_TOO_HEAVY;
+  return PHOTO_UPLOAD_FAILED;
+}
+
+export const LISTING_PHOTO_INVALID = "Une photo n'est pas valide. Retire-la et réessaie.";
+
+type ListingErrorInfo = {
+  message: string;
+  field?: ListingField;
+  /** Issue incertaine (réseau, passerelle) : l'annonce a pu être créée, il ne faut rien supprimer. */
+  uncertain?: boolean;
+};
+
+// Clés stables renvoyées par create_listing dans `hint` (jamais de comparaison de messages).
+const LISTING_ERRORS_BY_HINT: Record<string, ListingErrorInfo> = {
+  auth_required: { message: LISTING_SESSION_EXPIRED },
+  kind_required: { message: LISTING_KIND_REQUIRED, field: "kind" },
+  photos_count: { message: "Une annonce doit avoir de 1 à 3 photos.", field: "photos" },
+  photo_path_missing: { message: LISTING_PHOTO_INVALID, field: "photos" },
+  photo_duplicate: { message: LISTING_PHOTO_INVALID, field: "photos" },
+  photo_path_forbidden: { message: LISTING_PHOTO_INVALID, field: "photos" },
+  photo_path_invalid: { message: LISTING_PHOTO_INVALID, field: "photos" },
+  photo_missing: { message: PHOTO_MISSING, field: "photos" },
+  photo_in_use: { message: PHOTO_ALREADY_USED, field: "photos" },
+  listing_photo_required: { message: LISTING_PHOTOS_REQUIRED, field: "photos" },
+  activity_not_found: {
+    message: "Cette activité n'existe plus. Choisis-en une autre.",
+    field: "activity",
+  },
+  city_not_found: { message: CITY_UNKNOWN, field: "city" },
+  // Le serveur ne dit pas quel texte est trop long : l'erreur est posée sur Description.
+  text_too_long: { message: LISTING_TEXTS_TOO_LONG, field: "details" },
+};
+
+const SQLSTATE = /^[0-9A-Z]{5}$/;
+const GATEWAY_STATUSES = [502, 503, 504];
+
+/** Erreur de create_listing : d'abord la clé `hint`, puis le code SQL en repli. */
+export function mapListingError(error: ErrorLike): ListingErrorInfo {
+  if (error.hint === "listing_rate_limit" || error.code === "PT429" || error.status === 429) {
+    return { message: error.message || RATE_LIMIT_FALLBACK };
+  }
+  const byHint = error.hint ? LISTING_ERRORS_BY_HINT[error.hint] : undefined;
+  if (byHint) return byHint;
+  // PGRSTxxx : PostgREST a refusé la requête avant toute transaction, rien n'a été écrit.
+  if (/^PGRST\d{3}$/.test(error.code ?? "")) {
+    return {
+      message:
+        error.code === "PGRST301" || error.code === "PGRST303"
+          ? LISTING_SESSION_EXPIRED
+          : GENERIC_ERROR,
+    };
+  }
+  // Sans clé connue ni SQLSTATE, on ne sait pas si la transaction a été validée.
+  if (
+    isNetworkError(error) ||
+    !SQLSTATE.test(error.code ?? "") ||
+    GATEWAY_STATUSES.includes(error.status ?? 0)
+  ) {
+    return { message: LISTING_UNCONFIRMED, uncertain: true };
+  }
+  if (error.code === "42501") return { message: LISTING_SESSION_EXPIRED };
+  if (error.code === "23505") return { message: PHOTO_ALREADY_USED, field: "photos" };
+  return { message: GENERIC_ERROR };
 }

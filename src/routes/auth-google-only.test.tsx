@@ -86,8 +86,10 @@ describe("/auth/confirmation?code= (lien PKCE du modèle par défaut)", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     renderApp(routes, "/auth/confirmation?code=abc");
     expect(await screen.findByText("On te connecte…")).toBeInTheDocument();
+    // L'effet qui pose le timer peut tourner après l'apparition du texte : on l'attend avant d'avancer l'horloge.
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
     await act(async () => {
-      vi.advanceTimersByTime(CODE_WAIT_MS + 100);
+      await vi.advanceTimersByTimeAsync(CODE_WAIT_MS + 100);
     });
     expect(
       await screen.findByRole("heading", { name: "Ce lien ne fonctionne plus" }),

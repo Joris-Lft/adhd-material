@@ -27,6 +27,10 @@ const profilePage = page(() =>
   import("@/pages/ProfilePage").then((m) => ({ Component: m.ProfilePage })),
 );
 
+const publishPage = page(() =>
+  import("@/pages/PublishPage").then((m) => ({ Component: m.PublishPage })),
+);
+
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -43,7 +47,10 @@ export const routes: RouteObject[] = [
           { path: "/bienvenue", ...welcomePage },
           {
             element: <RequireOnboarded />,
-            children: [{ path: "/profil", ...profilePage }],
+            children: [
+              { path: "/profil", ...profilePage },
+              { path: "/publier", ...publishPage },
+            ],
           },
         ],
       },
