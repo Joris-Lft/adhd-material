@@ -2,6 +2,11 @@ import {
   GENERIC_ERROR,
   LISTING_SESSION_EXPIRED,
   mapListingError,
+  mapListingStatusError,
+  LISTING_STATUS_FAILED,
+  LISTING_STATUS_LOAN,
+  LISTING_STATUS_PHOTO_REQUIRED,
+  NETWORK_ERROR,
   mapPhotoUploadError,
 } from "./messages";
 
@@ -88,5 +93,27 @@ describe("mapPhotoUploadError", () => {
     expect(mapPhotoUploadError({ message: "Failed to fetch" })).toMatch(/Pas de connexion/);
     expect(mapPhotoUploadError({ status: 413 })).toMatch(/trop lourde/);
     expect(mapPhotoUploadError({ status: 500 })).toMatch(/L'envoi des photos a échoué/);
+  });
+});
+
+describe("mapListingStatusError", () => {
+  it("23514 avec la clé listing_photo_required : photo manquante", () => {
+    expect(
+      mapListingStatusError({ code: "23514", hint: "listing_photo_required", message: "x" }),
+    ).toBe(LISTING_STATUS_PHOTO_REQUIRED);
+  });
+
+  it("23514 sans clé : garde « prêtée »", () => {
+    expect(mapListingStatusError({ code: "23514", message: "Un prêt est en cours" })).toBe(
+      LISTING_STATUS_LOAN,
+    );
+  });
+
+  it("réseau, session expirée, autre erreur", () => {
+    expect(mapListingStatusError({ message: "TypeError: Failed to fetch" })).toBe(NETWORK_ERROR);
+    expect(mapListingStatusError({ status: 0 })).toBe(NETWORK_ERROR);
+    expect(mapListingStatusError({ code: "42501" })).toBe(LISTING_SESSION_EXPIRED);
+    expect(mapListingStatusError({ code: "PGRST301" })).toBe(LISTING_SESSION_EXPIRED);
+    expect(mapListingStatusError({ code: "XX000" })).toBe(LISTING_STATUS_FAILED);
   });
 });

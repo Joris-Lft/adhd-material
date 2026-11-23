@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import imageCompression from "browser-image-compression";
-import { fakeSession, queryResult, supabaseMock } from "@/test/supabase-mock";
+import { fakeSession, queryHandler, queryResult, supabaseMock } from "@/test/supabase-mock";
 import { renderApp } from "@/test/render";
 import { routes } from "@/routes/routes";
 
@@ -442,6 +442,21 @@ describe("page Publier une annonce", () => {
     expect(order.filter((step) => step === "rpc")).toHaveLength(1);
   });
 
+  it("l'écran de succès propose « Voir mon annonce » vers la fiche créée", async () => {
+    setup({ profileCityId: "c-lyon" });
+    const user = newUser();
+    await fillValidForm(user);
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Ville" })).toHaveValue("Lyon"),
+    );
+    await user.click(submitButton());
+    await screen.findByRole("heading", { name: "Annonce publiée" });
+    expect(screen.getByRole("link", { name: "Voir mon annonce" })).toHaveAttribute(
+      "href",
+      "/annonces/listing-1",
+    );
+  });
+
   it("« Publier une autre annonce » réinitialise complètement le formulaire", async () => {
     setup({ profileCityId: "c-lyon" });
     const user = newUser();
@@ -501,8 +516,80 @@ describe("page Publier une annonce", () => {
 
     const alert = await screen.findByText(/On n'a pas pu confirmer la publication/);
     expect(alert).toHaveTextContent("l'annonce est peut-être déjà en ligne");
+    expect(within(alert).getByRole("link", { name: "Voir mes annonces" })).toHaveAttribute(
+      "href",
+      "/mes-annonces",
+    );
     expect(remove).not.toHaveBeenCalled();
     await waitFor(() => expect(alert).toHaveFocus());
+  });
+
+  it("publication réussie : les listes d'annonces sont invalidées", async () => {
+    const { queryClient } = setup({ profileCityId: "c-lyon" });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const user = newUser();
+    await fillValidForm(user);
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Ville" })).toHaveValue("Lyon"),
+    );
+    await user.click(submitButton());
+    await screen.findByRole("heading", { name: "Annonce publiée" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["listings"] });
+  });
+
+  it("issue incertaine : « Voir mes annonces » n'est pas bloqué et relit la liste (cache périmé invalidé)", async () => {
+    const { queryClient } = setup({
+      profileCityId: "c-lyon",
+      createResult: { data: null, error: { message: "Failed to fetch" } },
+    });
+    // Cache jamais périmé par le temps : seule l'invalidation peut le rafraîchir.
+    queryClient.setDefaultOptions({ queries: { retry: false, staleTime: Infinity } });
+    queryClient.setQueryData(["listings", "mine", "user-1"], []);
+    let created = false;
+    const rpc = supabaseMock.rpc.getMockImplementation()!;
+    supabaseMock.rpc.mockImplementation((fn: string, args: unknown) => {
+      if (fn === "create_listing") created = true;
+      return rpc(fn, args);
+    });
+    const from = supabaseMock.from.getMockImplementation()!;
+    supabaseMock.from.mockImplementation((table: string) =>
+      table === "listings"
+        ? queryHandler(() => ({
+            data: created
+              ? [
+                  {
+                    id: "listing-1",
+                    kind: "don",
+                    status: "disponible",
+                    created_at: new Date().toISOString(),
+                    activities: { name: "Crochet" },
+                    cities: { name: "Lyon" },
+                    listing_photos: [],
+                  },
+                ]
+              : [],
+            error: null,
+          })).builder
+        : from(table),
+    );
+    supabaseMock.storage.from.mockReturnValue({
+      upload: vi.fn(async () => ({ error: null })),
+      remove: vi.fn(),
+      getPublicUrl: (path: string) => ({ data: { publicUrl: `https://img.test/${path}` } }),
+    });
+    const user = newUser();
+    await fillValidForm(user);
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Ville" })).toHaveValue("Lyon"),
+    );
+    await user.click(submitButton());
+
+    const alert = await screen.findByText(/On n'a pas pu confirmer la publication/);
+    await user.click(within(alert).getByRole("link", { name: "Voir mes annonces" }));
+    // Pas de dialogue « Ton annonce n'est pas publiée » : on arrive directement sur la page.
+    expect(await screen.findByRole("heading", { level: 1, name: "Mes annonces" })).toBeVisible();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Crochet" })).toBeVisible();
   });
 
   it("requête RPC interrompue (rejet) : traité comme une issue incertaine", async () => {

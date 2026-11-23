@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ListingForm } from "@/features/listings/ListingForm";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
-function PublishedScreen({ onAnother }: { onAnother: () => void }) {
+function PublishedScreen({ id, onAnother }: { id: string; onAnother: () => void }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => titleRef.current?.focus(), []);
   return (
@@ -15,7 +15,10 @@ function PublishedScreen({ onAnother }: { onAnother: () => void }) {
       </h1>
       <p className="text-muted-foreground">Merci ! Ton annonce est en ligne.</p>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="button" onClick={onAnother}>
+        <Button asChild>
+          <Link to={`/annonces/${id}`}>Voir mon annonce</Link>
+        </Button>
+        <Button type="button" variant="outline" onClick={onAnother}>
           Publier une autre annonce
         </Button>
         <Button asChild variant="outline">
@@ -28,7 +31,6 @@ function PublishedScreen({ onAnother }: { onAnother: () => void }) {
 
 export function PublishPage() {
   useDocumentTitle("Publier une annonce");
-  // L'id de l'annonce créée est conservé pour la fiche d'annonce (lot 5b).
   const [published, setPublished] = useState<{ id: string } | null>(null);
   const [formKey, setFormKey] = useState(0);
 
@@ -36,6 +38,7 @@ export function PublishPage() {
     return (
       <section className="mx-auto max-w-xl">
         <PublishedScreen
+          id={published.id}
           onAnother={() => {
             setPublished(null);
             setFormKey((key) => key + 1);

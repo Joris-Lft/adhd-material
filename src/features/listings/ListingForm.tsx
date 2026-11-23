@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useBlocker } from "react-router";
+import { Link, useBlocker } from "react-router";
 import { Controller, useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ActivityPicker } from "@/features/activities/ActivityPicker";
@@ -73,6 +73,8 @@ export function ListingForm({ onPublished }: ListingFormProps) {
   // Vrai dès que l'utilisateur a touché au champ ville : le pré-remplissage ne l'écrase plus.
   const cityTouched = useRef(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  // Issue incertaine : on propose de vérifier dans « Mes annonces ».
+  const [uncertain, setUncertain] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const alertRef = useRef<HTMLParagraphElement>(null);
 
@@ -92,7 +94,10 @@ export function ListingForm({ onPublished }: ListingFormProps) {
   // Navigation vers une autre route seulement (pas vers la même).
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      guarded && currentLocation.pathname !== nextLocation.pathname,
+      guarded &&
+      currentLocation.pathname !== nextLocation.pathname &&
+      // Issue incertaine : aller vérifier dans « Mes annonces » ne doit pas être bloqué.
+      !(uncertain && nextLocation.pathname === "/mes-annonces"),
   );
   // Rechargement ou fermeture de l'onglet avec une saisie en cours.
   useEffect(() => {
@@ -126,6 +131,7 @@ export function ListingForm({ onPublished }: ListingFormProps) {
     if (!values.activity || !values.kind || !values.city) return;
     submitting.current = true;
     setGlobalError(null);
+    setUncertain(false);
     try {
       const id = await create.mutateAsync({
         activity: values.activity,
@@ -142,6 +148,7 @@ export function ListingForm({ onPublished }: ListingFormProps) {
       const failure = error instanceof ListingError ? error : new ListingError(GENERIC_ERROR);
       if (!failure.field) {
         setGlobalError(failure.message);
+        setUncertain(failure.uncertain);
         return;
       }
       const field = failure.field === "details" ? "description" : failure.field;
@@ -285,6 +292,14 @@ export function ListingForm({ onPublished }: ListingFormProps) {
           className="rounded-md border border-destructive p-3 text-sm text-destructive outline-none"
         >
           {globalError}
+          {uncertain && (
+            <>
+              {" "}
+              <Link to="/mes-annonces" className="font-medium underline underline-offset-4">
+                Voir mes annonces
+              </Link>
+            </>
+          )}
         </p>
       )}
       <p role="status" aria-live="polite" className="sr-only">

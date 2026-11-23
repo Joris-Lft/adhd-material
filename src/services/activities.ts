@@ -41,3 +41,13 @@ export async function resolveActivity(
   }
   throw new ActivityError(mapActivityError(error));
 }
+
+export async function fetchActivity(id: string): Promise<{ id: string; name: string } | null> {
+  const { data, error } = await supabase
+    .from("activities")
+    .select("id, name")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}

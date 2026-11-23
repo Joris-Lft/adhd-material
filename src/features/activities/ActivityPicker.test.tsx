@@ -10,10 +10,17 @@ vi.mock("@/lib/supabase", async () => ({
   supabase: (await import("@/test/supabase-mock")).supabaseMock,
 }));
 
-function Harness({ onChange }: { onChange?: (value: ActivityValue) => void }) {
+function Harness({
+  onChange,
+  allowCreate,
+}: {
+  onChange?: (value: ActivityValue) => void;
+  allowCreate?: boolean;
+}) {
   const [value, setValue] = useState<ActivityValue>(null);
   return (
     <ActivityPicker
+      allowCreate={allowCreate}
       value={value}
       onChange={(next) => {
         setValue(next);
@@ -52,6 +59,30 @@ describe("ActivityPicker", () => {
       "Créer « Crochat »",
     ]);
     expect(screen.getByRole("button", { name: "Tu voulais dire Crochet ?" })).toBeVisible();
+  });
+
+  it("allowCreate={false} : ni « Créer » ni « Tu voulais dire », les suggestions restent choisissables", async () => {
+    suggestions("Crochet");
+    const onChange = vi.fn();
+    const user = setup();
+    renderWithQuery(<Harness allowCreate={false} onChange={onChange} />);
+    await user.type(screen.getByRole("combobox"), "Crochat");
+
+    await screen.findByRole("option", { name: "Crochet" });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(screen.queryByRole("option", { name: /Créer/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Tu voulais dire/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Crochet" }));
+    expect(onChange).toHaveBeenLastCalledWith({ kind: "existing", id: "a0", name: "Crochet" });
+  });
+
+  it("allowCreate={false} sans résultat : « Aucun résultat » et pas de création", async () => {
+    suggestions();
+    const user = setup();
+    renderWithQuery(<Harness allowCreate={false} />);
+    await user.type(screen.getByRole("combobox"), "Zzzz");
+    await screen.findByText("Aucun résultat", { selector: "[role=status]" });
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 
   it("choisir « Créer » renvoie un nouveau nom nettoyé, sans rien écrire en base", async () => {

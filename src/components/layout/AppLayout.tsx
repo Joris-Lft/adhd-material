@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Link, Outlet, ScrollRestoration } from "react-router";
-import { Package, Plus, User } from "lucide-react";
+import { ListChecks, Package, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/useSession";
 import { useFocusHeadingOnNavigation } from "@/hooks/useFocusHeadingOnNavigation";
@@ -23,6 +23,19 @@ function AccountLink() {
       <Link to="/profil">
         <User aria-hidden="true" />
         <span className="truncate">{profile?.display_name ?? "Mon profil"}</span>
+      </Link>
+    </Button>
+  );
+}
+
+function MyListingsLink() {
+  const { session } = useSession();
+  if (!session) return null;
+  return (
+    <Button asChild variant="ghost" size="sm">
+      <Link to="/mes-annonces">
+        <ListChecks aria-hidden="true" />
+        <span className="sr-only sm:not-sr-only">Mes annonces</span>
       </Link>
     </Button>
   );
@@ -59,6 +72,7 @@ export function AppLayout() {
                 Publier
               </Link>
             </Button>
+            <MyListingsLink />
             <AccountLink />
           </nav>
         </div>

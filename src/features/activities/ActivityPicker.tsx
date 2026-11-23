@@ -19,6 +19,10 @@ interface ActivityPickerProps {
   error?: string;
   id?: string;
   name?: string;
+  /** Faux pour un filtre : seules les activités existantes sont proposées (pas d'option « Créer »). */
+  allowCreate?: boolean;
+  /** Appelé quand la saisie est entièrement effacée (ex. retirer un filtre). */
+  onClear?: () => void;
 }
 
 type ActivityOption = ComboboxOption & { value: NonNullable<ActivityValue> };
@@ -33,6 +37,8 @@ export function ActivityPicker({
   error,
   id,
   name,
+  allowCreate = true,
+  onClear,
 }: ActivityPickerProps) {
   const { text, setText, markTyped } = useSyncedText(value);
   const cleaned = cleanActivityName(text);
@@ -54,7 +60,7 @@ export function ActivityPicker({
   const hasExactMatch = results.some(
     (activity) => normalizeActivityName(activity.name) === normalized,
   );
-  const creatable = canSuggest && isCreatableActivityName(cleaned) && !hasExactMatch;
+  const creatable = allowCreate && canSuggest && isCreatableActivityName(cleaned) && !hasExactMatch;
   const firstSuggestion = options[0];
   const didYouMean = creatable && firstSuggestion ? firstSuggestion : null;
   if (creatable) {
@@ -102,6 +108,7 @@ export function ActivityPicker({
       }
       onInputChange={(next) => {
         setText(next);
+        if (!next.trim()) onClear?.();
         if (value) {
           markTyped();
           onChange(null);

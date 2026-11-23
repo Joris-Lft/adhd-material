@@ -198,3 +198,27 @@ export function mapListingError(error: ErrorLike): ListingErrorInfo {
   if (error.code === "23505") return { message: PHOTO_ALREADY_USED, field: "photos" };
   return { message: GENERIC_ERROR };
 }
+
+// --- Statut d'une annonce ---
+
+export const LISTING_STATUS_PHOTO_REQUIRED =
+  "Cette annonce n'a plus de photo : elle ne peut pas être remise en ligne.";
+export const LISTING_STATUS_LOAN =
+  "Cette annonce est prêtée en ce moment : son statut ne peut pas être changé ici.";
+export const LISTING_STATUS_GONE =
+  "Cette annonce n'existe plus ou ne t'appartient pas. Recharge la page.";
+export const LISTING_STATUS_FAILED = "Le changement n'a pas abouti. Réessaie dans un instant.";
+
+/** Erreur PostgREST lors d'un changement de statut d'annonce. */
+export function mapListingStatusError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  if (error.code === "23514") {
+    return error.hint === "listing_photo_required"
+      ? LISTING_STATUS_PHOTO_REQUIRED
+      : LISTING_STATUS_LOAN;
+  }
+  if (error.code === "42501" || error.code === "PGRST301" || error.code === "PGRST303") {
+    return LISTING_SESSION_EXPIRED;
+  }
+  return LISTING_STATUS_FAILED;
+}

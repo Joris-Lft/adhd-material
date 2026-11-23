@@ -1,8 +1,10 @@
 import { supabase } from "@/lib/supabase";
 import {
   GENERIC_ERROR,
+  LISTING_STATUS_GONE,
   PHOTO_FORMAT_UNSUPPORTED,
   mapListingError,
+  mapListingStatusError,
   mapPhotoUploadError,
   type ListingField,
 } from "@/lib/messages";
@@ -118,4 +120,22 @@ export async function createListing(
     if (!(error instanceof ListingError && error.uncertain)) await removePhotos(paths);
     throw error;
   }
+}
+
+export type ListingStatus = Database["public"]["Enums"]["listing_status"];
+
+/** Échec d'un changement de statut ; le message est déjà prêt à afficher. */
+export class ListingStatusError extends Error {}
+
+/** Change le statut d'une annonce de l'utilisateur (les règles métier sont tenues par la base). */
+export async function updateListingStatus(id: string, status: ListingStatus): Promise<void> {
+  let result;
+  try {
+    result = await supabase.from("listings").update({ status }).eq("id", id).select("id");
+  } catch (error) {
+    result = { data: null, error: { message: error instanceof Error ? error.message : "" } };
+  }
+  if (result.error) throw new ListingStatusError(mapListingStatusError(result.error));
+  // Aucune ligne modifiée : annonce supprimée ou qui n'est pas la tienne (RLS).
+  if (!result.data?.length) throw new ListingStatusError(LISTING_STATUS_GONE);
 }

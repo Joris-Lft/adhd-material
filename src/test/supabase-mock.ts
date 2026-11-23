@@ -23,6 +23,30 @@ export function queryResult(result: unknown) {
   return { builder, calls };
 }
 
+/**
+ * Comme `queryResult`, mais le résultat est calculé à la résolution à partir des appels enregistrés
+ * (ex. pagination selon `range`, filtre selon `eq`).
+ */
+export function queryHandler(resolve: (calls: { method: string; args: unknown[] }[]) => unknown) {
+  const calls: { method: string; args: unknown[] }[] = [];
+  const builder: unknown = new Proxy(
+    {},
+    {
+      get: (_target, prop) =>
+        prop === "then"
+          ? (onFulfilled: (value: unknown) => unknown, onRejected?: (reason: unknown) => unknown) =>
+              Promise.resolve()
+                .then(() => resolve(calls))
+                .then(onFulfilled, onRejected)
+          : (...args: unknown[]) => {
+              calls.push({ method: String(prop), args });
+              return builder;
+            },
+    },
+  );
+  return { builder, calls };
+}
+
 export function fakeJwt(claims: Record<string, unknown>): string {
   const encode = (value: unknown) =>
     btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(value))))

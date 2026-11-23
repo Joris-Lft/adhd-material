@@ -31,6 +31,13 @@ const publishPage = page(() =>
   import("@/pages/PublishPage").then((m) => ({ Component: m.PublishPage })),
 );
 
+const listingPage = page(() =>
+  import("@/pages/ListingPage").then((m) => ({ Component: m.ListingPage })),
+);
+const myListingsPage = page(() =>
+  import("@/pages/MyListingsPage").then((m) => ({ Component: m.MyListingsPage })),
+);
+
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -38,6 +45,7 @@ export const routes: RouteObject[] = [
     HydrateFallback: PageLoader,
     children: [
       { path: "/", element: <HomePage /> },
+      { path: "/annonces/:id", ...listingPage },
       { element: <GuestOnly />, children: [{ path: "/connexion", ...loginPage }] },
       { path: "/auth/callback", ...callbackPage },
       { path: "/auth/confirmation", ...confirmationPage },
@@ -50,6 +58,7 @@ export const routes: RouteObject[] = [
             children: [
               { path: "/profil", ...profilePage },
               { path: "/publier", ...publishPage },
+              { path: "/mes-annonces", ...myListingsPage },
             ],
           },
         ],
