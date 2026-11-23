@@ -20,6 +20,24 @@ export default tseslint.config(
       ],
     },
   },
+  // zod doit être configuré (jitless, CSP) avant le premier schéma : on n'importe que `@/lib/zod`.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/zod.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^zod($|/)",
+              message: 'Importe `z` depuis "@/lib/zod" (configuration jitless pour la CSP).',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Composants shadcn générés : exportent aussi des variants/hooks.
   { files: ["src/components/ui/**"], rules: { "react-refresh/only-export-components": "off" } },
 );

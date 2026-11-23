@@ -209,14 +209,14 @@ isOneToOne: false
                   ]
                 },"reports": {
                   Row: {
-                    "created_at": string,"id": string,"listing_id": string,"reason": string,"reporter_id": string | null
+                    "category": string,"created_at": string,"id": string,"listing_id": string,"reason": string | null,"reporter_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"listing_id": string,"reason": string,"reporter_id"?: string | null
+                    "category": string,"created_at"?: string,"id"?: string,"listing_id": string,"reason"?: string | null,"reporter_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"listing_id"?: string,"reason"?: string,"reporter_id"?: string | null
+                    "category"?: string,"created_at"?: string,"id"?: string,"listing_id"?: string,"reason"?: string | null,"reporter_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -277,6 +277,9 @@ isOneToOne: false
                            },
 "normalize_text":
 { Args: { "t": string }; Returns: string
+                           },
+"report_listing":
+{ Args: { "p_category": string,"p_details"?: string,"p_listing_id": string }; Returns: undefined
                            },
 "return_loan":
 { Args: { "p_loan_id": string }; Returns: undefined

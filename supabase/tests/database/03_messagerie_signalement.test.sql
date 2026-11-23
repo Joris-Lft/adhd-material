@@ -51,10 +51,10 @@ select lives_ok($$insert into public.messages (conversation_id, body) values (te
 
 -- ======================= reports
 select tests.act_as('22222222-2222-2222-2222-222222222222');
-select lives_ok($$insert into public.reports (listing_id, reason) values ('b0000000-0000-0000-0000-000000000002', 'Contenu suspect')$$, 'bob signale une annonce');
-select throws_ok($$insert into public.reports (listing_id, reason) values ('b0000000-0000-0000-0000-000000000002', 'Encore')$$, '23505', null, 'un seul signalement par (annonce, utilisateur)');
-select throws_ok($$insert into public.reports (listing_id, reason) values ('b0000000-0000-0000-0000-000000000001', 'Contenu suspect')$$, '42501', null, 'pas de signalement d''une annonce invisible (archivée)');
-select throws_ok($$insert into public.reports (listing_id, reporter_id, reason) values ('b0000000-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333', 'usurpation')$$, '42501', null, 'reporter_id usurpé refusé');
+select lives_ok($$select public.report_listing('b0000000-0000-0000-0000-000000000002', 'autre', 'Contenu suspect')$$, 'bob signale une annonce');
+select is(tests.err($$select public.report_listing('b0000000-0000-0000-0000-000000000002', 'autre', 'Encore')$$), '23505/already_reported', 'un seul signalement par (annonce, utilisateur)');
+select is(tests.err($$select public.report_listing('b0000000-0000-0000-0000-000000000001', 'autre', 'Contenu suspect')$$), '23514/listing_unavailable', 'pas de signalement d''une annonce invisible (archivée)');
+select throws_ok($$insert into public.reports (listing_id, reporter_id, category, reason) values ('b0000000-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333', 'autre', 'usurpation')$$, '42501', null, 'insert direct (reporter_id usurpé) refusé');
 select throws_ok($$select * from public.reports$$, '42501', null, 'reports non lisibles par bob');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 select throws_ok($$select count(*) from public.reports$$, '42501', null, 'reports non lisibles par le propriétaire de l''annonce signalée');

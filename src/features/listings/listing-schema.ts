@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import type { ActivityValue } from "@/services/activities";
 import type { CityValue } from "@/features/cities/CityPicker";
 import type { ListingKind } from "@/services/listings";

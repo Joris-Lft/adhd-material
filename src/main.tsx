@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router";
 import { PwaUpdatePrompt } from "@/components/layout/PwaUpdatePrompt";
 import { SessionProvider } from "@/features/auth/SessionProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { startInstallPromptCapture } from "@/lib/install-prompt";
 import { queryClient } from "@/lib/query-client";
 import { router } from "@/routes/router";
 import "./index.css";
@@ -15,14 +16,18 @@ const ReactQueryDevtools = import.meta.env.DEV
     )
   : null;
 
+// beforeinstallprompt peut partir avant le premier rendu : on l'écoute tout de suite.
+startInstallPromptCapture();
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <RouterProvider router={router} />
-      </SessionProvider>
+      <PwaUpdatePrompt>
+        <SessionProvider>
+          <RouterProvider router={router} />
+        </SessionProvider>
+      </PwaUpdatePrompt>
       <Toaster />
-      <PwaUpdatePrompt />
       {ReactQueryDevtools && (
         <Suspense>
           <ReactQueryDevtools initialIsOpen={false} />

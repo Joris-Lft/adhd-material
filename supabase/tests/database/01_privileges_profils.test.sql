@@ -25,7 +25,7 @@ select is(array(
 select is(array(
   select p.proname::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname in ('public', 'private') and has_function_privilege('authenticated', p.oid, 'execute') order by 1
-), array['clean_text', 'conversation_has_both_parties', 'conversation_has_messages', 'create_listing', 'get_conversation', 'get_my_profile', 'get_unread_count', 'list_my_conversations', 'listing_photo_in_use', 'mark_conversation_read', 'my_conversations', 'normalize_place', 'normalize_text', 'return_loan', 'search_activities', 'search_cities', 'search_listings', 'shares_conversation_with', 'start_conversation', 'start_loan']::text[],
+), array['clean_text', 'conversation_has_both_parties', 'conversation_has_messages', 'create_listing', 'get_conversation', 'get_my_profile', 'get_unread_count', 'list_my_conversations', 'listing_photo_in_use', 'mark_conversation_read', 'my_conversations', 'normalize_place', 'normalize_text', 'report_listing', 'return_loan', 'search_activities', 'search_cities', 'search_listings', 'shares_conversation_with', 'start_conversation', 'start_loan']::text[],
   'fonctions exécutables par authenticated : liste blanche (aucune fonction de trigger)');
 
 -- ======================= anon : lecture seule, profil public minimal
@@ -47,7 +47,7 @@ select throws_ok($$insert into public.listings (activity_id, kind, city_id) valu
 select throws_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000001')$$, '42501', null, 'anon ne peut pas ouvrir de conversation');
 select throws_ok($$insert into public.messages (conversation_id, body) values (gen_random_uuid(), 'x')$$, '42501', null, 'anon ne peut pas écrire');
 select is(has_column_privilege('authenticated', 'public.conversations', 'listing_id', 'INSERT'), false, 'authenticated n''a plus de grant INSERT sur conversations (start_conversation est le seul chemin)');
-select throws_ok($$insert into public.reports (listing_id, reason) values ('b0000000-0000-0000-0000-000000000001', 'spam')$$, '42501', null, 'anon ne peut pas signaler');
+select throws_ok($$insert into public.reports (listing_id, category, reason) values ('b0000000-0000-0000-0000-000000000001', 'autre', 'spam')$$, '42501', null, 'anon ne peut pas signaler (insert direct)');
 select throws_ok($$insert into public.activities (name) values ('Tricot')$$, '42501', null, 'anon ne peut pas créer d''activité');
 select throws_ok($$insert into public.cities (insee_code, name, location) values ('99999', 'X', 'SRID=4326;POINT(0 0)')$$, '42501', null, 'anon ne peut pas créer de ville');
 select throws_ok($$select * from public.messages$$, '42501', null, 'anon ne lit pas les messages');

@@ -1,10 +1,18 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const { version } = JSON.parse(
+  readFileSync(path.resolve(import.meta.dirname, "package.json"), "utf8"),
+) as { version: string };
+// Commit déployé par Vercel : distingue deux builds de même version pendant les tests.
+const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(commit ? `${version} (${commit})` : version) },
   plugins: [
     react(),
     tailwindcss(),
@@ -21,7 +29,8 @@ export default defineConfig({
         name: "adhd-material",
         short_name: "adhd-mat",
         description:
-          "Donnez ou empruntez le matériel d'activités testées puis abandonnées, près de chez vous.",
+          "Donne ou emprunte le matériel d'activités testées puis abandonnées, près de chez toi.",
+        categories: ["lifestyle", "social"],
         lang: "fr",
         theme_color: "#4f46e5",
         background_color: "#ffffff",

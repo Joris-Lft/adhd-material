@@ -88,9 +88,13 @@ function setup({
   return { listingCalls };
 }
 
-// Les sélecteurs (combobox) ont leurs propres zones de statut : on isole celle de la liste.
-const listStatus = () =>
-  screen.getAllByRole("status").find((element) => !element.closest("[role=search]"))!;
+// Les sélecteurs (combobox) et le bandeau hors connexion ont leurs propres zones de statut :
+// on isole celle de la page.
+const pageStatuses = () =>
+  screen
+    .getAllByRole("status")
+    .filter((el) => !el.closest("[role=search]") && !el.closest("[data-slot=offline-banner]"));
+const listStatus = () => pageStatuses()[0]!;
 
 const searchCalls = () =>
   supabaseMock.rpc.mock.calls.filter(([fn]) => fn === "search_listings").map(([, args]) => args);
@@ -337,8 +341,7 @@ describe("accueil : liste des annonces", () => {
     setup({ searchPages: [[rpcRow(1)]] });
     renderApp(routes, `/?ville=${ID.lyon}`);
     await screen.findByRole("link", { name: "Activité 1" });
-    const pageStatus = screen.getAllByRole("status").filter((el) => !el.closest("[role=search]"));
-    expect(pageStatus).toHaveLength(1);
+    expect(pageStatuses()).toHaveLength(1);
   });
 
   it("« Toute la France » force les annonces récentes malgré la ville du profil, via ville=toutes", async () => {

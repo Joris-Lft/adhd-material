@@ -4,6 +4,8 @@ import { PageLoader } from "@/components/layout/PageLoader";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/useSession";
 import { formatCity } from "@/features/cities/format-city";
+import { ReportListing } from "@/features/reports/ReportListing";
+import { REPORT_LINK_CLASS } from "@/features/reports/report-link";
 import { ListingGallery } from "@/features/listings/ListingGallery";
 import { ContactButton } from "@/features/messages/ContactButton";
 import { KindBadge, StatusBadge } from "@/features/listings/ListingBadges";
@@ -67,6 +69,27 @@ function ContactAction({ listing }: { listing: ListingDetail }) {
   return <ContactButton listingId={listing.id} ownerName={listing.ownerName} />;
 }
 
+function ReportAction({ listing }: { listing: ListingDetail }) {
+  const { session, loading } = useSession();
+  // Sans auteur (compte supprimé) le serveur refuse le signalement (listing_unavailable), comme Contacter.
+  if (!listing.ownerId || (!loading && session?.user.id === listing.ownerId)) return null;
+  return (
+    <div className="border-t pt-2">
+      {/* Hauteur réservée pendant le chargement de la session : pas de saut de page. */}
+      {loading ? (
+        <div className="h-11" aria-hidden="true" />
+      ) : session ? (
+        // Une clé par annonce : l'état « signalée » ne passe pas d'une fiche à l'autre.
+        <ReportListing key={listing.id} listingId={listing.id} />
+      ) : (
+        <Link to={buildLoginUrl(`/annonces/${listing.id}`)} className={REPORT_LINK_CLASS}>
+          Signaler cette annonce
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export function ListingPage() {
   const { id } = useParams();
   const validId = isUuid(id) ? id : null;
@@ -123,6 +146,7 @@ export function ListingPage() {
       <TextSection title="Description" text={listing.description} />
       <TextSection title="Son expérience" text={listing.experience} />
       <ContactAction listing={listing} />
+      <ReportAction listing={listing} />
     </article>
   );
 }

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
+import { DIALOG_CONTENT_CLASS, DIALOG_OVERLAY_CLASS } from "@/components/ui/dialog-styles";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -11,14 +12,8 @@ function AlertDialogContent({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   return (
     <AlertDialogPrimitive.Portal>
-      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
-      <AlertDialogPrimitive.Content
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-lg border bg-background p-6 shadow-lg",
-          className,
-        )}
-        {...props}
-      />
+      <AlertDialogPrimitive.Overlay className={DIALOG_OVERLAY_CLASS} />
+      <AlertDialogPrimitive.Content className={cn(DIALOG_CONTENT_CLASS, className)} {...props} />
     </AlertDialogPrimitive.Portal>
   );
 }

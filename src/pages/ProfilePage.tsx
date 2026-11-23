@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { PageLoader } from "@/components/layout/PageLoader";
 import { ProfileUnavailable } from "@/components/layout/ProfileUnavailable";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { AppSection } from "@/features/pwa/AppSection";
 import { CityForm } from "@/features/profile/CityForm";
 import { DeleteAccountSection } from "@/features/profile/DeleteAccountSection";
 import { DisplayNameForm } from "@/features/profile/DisplayNameForm";
@@ -54,6 +55,7 @@ export function ProfilePage() {
           </section>
         </>
       )}
+      <AppSection />
       <LoadingButton type="button" variant="outline" loading={signingOut} onClick={onSignOut}>
         Se déconnecter
       </LoadingButton>

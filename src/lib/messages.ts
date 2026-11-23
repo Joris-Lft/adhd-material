@@ -306,3 +306,45 @@ export function mapLoanError(error: ErrorLike): string {
   if (isSessionError(error)) return MESSAGING_SESSION_EXPIRED;
   return LOAN_FAILED;
 }
+
+// --- Signalement d'une annonce ---
+
+export const REPORT_FAILED = "Le signalement n'a pas pu être envoyé. Réessaie dans un instant.";
+export const REPORT_OWN_LISTING = "C'est ton annonce : tu ne peux pas la signaler.";
+export const REPORT_LISTING_UNAVAILABLE =
+  "Cette annonce n'est plus disponible : on ne peut plus la signaler.";
+export const REPORT_CATEGORY_REQUIRED = "Choisis la raison du signalement.";
+export const REPORT_CATEGORY_INVALID =
+  "Cette raison n'est pas valide. Choisis-en une dans la liste.";
+export const REPORT_DETAILS_REQUIRED = "Explique en quelques mots ce qui ne va pas.";
+export const REPORT_DETAILS_TOO_SHORT = "Ajoute quelques mots : 3 caractères au minimum.";
+export const REPORT_DETAILS_TOO_LONG =
+  "Tes précisions sont trop longues : 1 000 caractères au maximum.";
+export const REPORT_RATE_LIMIT =
+  "Tu as déjà fait beaucoup de signalements aujourd'hui. Réessaie demain.";
+export const REPORT_ALREADY_DONE = "Tu as déjà signalé cette annonce, merci.";
+export const REPORT_THANKS = "Merci, on va regarder.";
+
+/** Erreur de report_listing (clé `hint`, jamais le message). `already_reported` est traité à part. */
+export function mapReportError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  switch (error.hint) {
+    case "report_rate_limit":
+      return REPORT_RATE_LIMIT;
+    case "own_listing":
+      return REPORT_OWN_LISTING;
+    case "listing_unavailable":
+      return REPORT_LISTING_UNAVAILABLE;
+    case "details_required":
+      return REPORT_DETAILS_REQUIRED;
+    case "details_too_short":
+      return REPORT_DETAILS_TOO_SHORT;
+    case "details_too_long":
+      return REPORT_DETAILS_TOO_LONG;
+    case "category_invalid":
+      return REPORT_CATEGORY_INVALID;
+  }
+  if (error.code === "PT429" || error.status === 429) return REPORT_RATE_LIMIT;
+  if (isSessionError(error) || error.code === "42501") return MESSAGING_SESSION_EXPIRED;
+  return REPORT_FAILED;
+}

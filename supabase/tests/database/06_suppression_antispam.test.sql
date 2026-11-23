@@ -7,7 +7,7 @@ select tests.setup();
 -- bob (demandeur) discute sur L1 (alice), signale L2, alice est son interlocutrice
 select tests.open_conversation('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
 insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Bonjour'), (tests.conv(), '11111111-1111-1111-1111-111111111111', 'Salut');
-insert into public.reports (listing_id, reporter_id, reason) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'Contenu suspect');
+insert into public.reports (listing_id, reporter_id, category, reason) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'autre', 'Contenu suspect');
 select tests.open_conversation('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
 insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Je peux l''emprunter ?');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
@@ -31,7 +31,7 @@ select tests.setup();
 update public.listings set description = 'Mon matériel', experience = 'Trop dur' where owner_id = '11111111-1111-1111-1111-111111111111';
 select tests.open_conversation('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
 insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Bonjour'), (tests.conv(), '11111111-1111-1111-1111-111111111111', 'Salut');
-insert into public.reports (listing_id, reporter_id, reason) values ('b0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'Contenu suspect');
+insert into public.reports (listing_id, reporter_id, category, reason) values ('b0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'autre', 'Contenu suspect');
 select tests.open_conversation('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
 insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Je peux l''emprunter ?');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
@@ -58,7 +58,7 @@ select is((select count(*) from public.loans), 1::bigint, 'l''emprunteur lit enc
 select is_empty($$update public.listings set description = 'pirate', status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000001' returning 1$$, 'personne ne peut modifier une annonce orpheline');
 select throws_ok($$update public.listings set owner_id = '22222222-2222-2222-2222-222222222222' where id = 'b0000000-0000-0000-0000-000000000001'$$, '42501', null, 'personne ne peut s''approprier une annonce orpheline');
 select throws_ok($$insert into public.listing_photos (listing_id, storage_path, position) values ('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222/x.jpg', 1)$$, '42501', null, 'pas de photo sur une annonce orpheline');
-select throws_ok($$insert into public.reports (listing_id, reason) values ('b0000000-0000-0000-0000-000000000001', 'Encore')$$, '42501', null, 'annonce orpheline invisible : pas de nouveau signalement');
+select is(tests.err($$select public.report_listing('b0000000-0000-0000-0000-000000000001', 'autre', 'Encore')$$), '23514/listing_unavailable', 'annonce orpheline invisible : pas de nouveau signalement');
 select tests.act_as('33333333-3333-3333-3333-333333333333');
 select throws_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000001')$$, '42501', null, 'impossible d''ouvrir une conversation sur une annonce orpheline');
 select is((select count(*) from public.conversations), 0::bigint, 'un tiers ne lit toujours pas les conversations');

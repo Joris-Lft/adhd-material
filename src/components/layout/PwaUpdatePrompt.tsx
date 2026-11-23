@@ -1,9 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { toast } from "sonner";
+import { PwaUpdateContext } from "@/features/pwa/pwa-update-context";
 
-/** Propose la mise à jour via un toast : jamais de rechargement automatique (formulaire en cours). */
-export function PwaUpdatePrompt() {
+/**
+ * Seul point d'inscription du service worker. Propose la mise à jour via un toast (jamais de
+ * rechargement automatique : formulaire en cours) et la partage avec le profil (bouton « Recharger »).
+ */
+export function PwaUpdatePrompt({ children }: { children: React.ReactNode }) {
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
@@ -20,5 +24,9 @@ export function PwaUpdatePrompt() {
     };
   }, [needRefresh, updateServiceWorker]);
 
-  return null;
+  const value = useMemo(
+    () => ({ needRefresh, updateServiceWorker }),
+    [needRefresh, updateServiceWorker],
+  );
+  return <PwaUpdateContext value={value}>{children}</PwaUpdateContext>;
 }

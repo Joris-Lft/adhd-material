@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { DISPLAY_NAME_LENGTH } from "@/lib/messages";
 
 export const displayNameSchema = z.object({

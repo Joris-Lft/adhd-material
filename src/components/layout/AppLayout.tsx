@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Link, Outlet, ScrollRestoration } from "react-router";
 import { ListChecks, MessageCircle, Package, Plus, User } from "lucide-react";
+import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/useSession";
 import { InboxRealtime } from "@/features/messages/InboxRealtime";
@@ -108,6 +109,7 @@ export function AppLayout() {
           </nav>
         </div>
       </header>
+      <OfflineBanner />
       <main
         id="contenu"
         ref={mainRef}
