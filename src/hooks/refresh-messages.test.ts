@@ -9,6 +9,10 @@ import {
   type MessagePages,
 } from "./refresh-messages";
 
+vi.mock("@/lib/supabase", async () => ({
+  supabase: (await import("@/test/supabase-mock")).supabaseMock,
+}));
+
 vi.mock("@/services/conversations", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/conversations")>()),
   fetchMessages: vi.fn(),
