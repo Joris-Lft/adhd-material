@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -122,7 +123,10 @@ export function ListingStatusActions({ listing }: ListingStatusActionsProps) {
   if (status === "pretee") {
     return (
       <p className="text-sm text-muted-foreground">
-        Le prêt se gère depuis la conversation (bientôt).
+        Le prêt se gère depuis la conversation avec la personne qui a le matériel.{" "}
+        <Link to="/messages" className="inline-flex min-h-11 items-center underline">
+          Voir mes messages
+        </Link>
       </p>
     );
   }

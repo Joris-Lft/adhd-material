@@ -38,6 +38,13 @@ const myListingsPage = page(() =>
   import("@/pages/MyListingsPage").then((m) => ({ Component: m.MyListingsPage })),
 );
 
+const conversationsPage = page(() =>
+  import("@/pages/ConversationsPage").then((m) => ({ Component: m.ConversationsPage })),
+);
+const conversationPage = page(() =>
+  import("@/pages/ConversationPage").then((m) => ({ Component: m.ConversationPage })),
+);
+
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -59,6 +66,8 @@ export const routes: RouteObject[] = [
               { path: "/profil", ...profilePage },
               { path: "/publier", ...publishPage },
               { path: "/mes-annonces", ...myListingsPage },
+              { path: "/messages", ...conversationsPage },
+              { path: "/messages/:id", ...conversationPage },
             ],
           },
         ],

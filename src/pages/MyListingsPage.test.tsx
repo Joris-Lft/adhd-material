@@ -131,9 +131,7 @@ describe("Mes annonces", () => {
     expect(buttons("Puzzle")).toEqual(["Remettre disponible", "Archiver"]);
     expect(buttons("Tricot")).toEqual(["Republier"]);
     expect(buttons("Vélo")).toEqual([]);
-    expect(
-      within(card("Vélo")).getByText("Le prêt se gère depuis la conversation (bientôt)."),
-    ).toBeVisible();
+    expect(within(card("Vélo")).getByText(/Le prêt se gère depuis la conversation/)).toBeVisible();
     // Les boutons se distinguent d'une carte à l'autre pour les lecteurs d'écran.
     expect(
       within(card("Crochet")).getByRole("button", { name: /^Archiver : Crochet, / }),

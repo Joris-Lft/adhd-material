@@ -9,6 +9,7 @@ select tests.open_conversation('b0000000-0000-0000-0000-000000000001', '22222222
 insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Bonjour'), (tests.conv(), '11111111-1111-1111-1111-111111111111', 'Salut');
 insert into public.reports (listing_id, reporter_id, reason) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'Contenu suspect');
 select tests.open_conversation('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
+insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Je peux l''emprunter ?');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 insert into public.loans (listing_id, borrower_id) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
 select tests.act_admin();
@@ -17,13 +18,13 @@ delete from auth.users where id = '22222222-2222-2222-2222-222222222222';
 select is((select count(*) from public.profiles where id = '22222222-2222-2222-2222-222222222222'), 0::bigint, 'profil supprimé avec le compte');
 select is((select count(*) from public.listings where owner_id = '22222222-2222-2222-2222-222222222222'), 0::bigint, 'annonces du compte supprimé : supprimées (cascade)');
 select is((select count(*) from public.conversations where listing_id = 'b0000000-0000-0000-0000-000000000001' and requester_id is null), 1::bigint, 'conversation conservée, demandeur anonymisé');
-select is((select count(*) from public.messages where sender_id is null), 1::bigint, 'message de l''ancien membre conservé, expéditeur anonymisé');
+select is((select count(*) from public.messages where sender_id is null), 2::bigint, 'messages de l''ancien membre conservés, expéditeur anonymisé');
 select is((select count(*) from public.messages where sender_id = '11111111-1111-1111-1111-111111111111'), 1::bigint, 'message de l''interlocutrice intact');
 select is((select count(*) from public.reports where reporter_id is null), 1::bigint, 'signalement conservé, auteur anonymisé');
 select results_eq($$select borrower_id is null, returned_at is null from public.loans$$, $$values (true, true)$$, 'prêt conservé, ouvert, emprunteur anonymisé');
 select is((select status::text from public.listings where id = 'b0000000-0000-0000-0000-000000000002'), 'pretee', 'l''annonce reste « pretee » jusqu''à la clôture par le prêteur');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
-select is((select count(*) from public.messages), 2::bigint, 'alice lit toujours la conversation');
+select is((select count(*) from public.messages), 3::bigint, 'alice lit toujours les conversations');
 
 -- ======================= compte du propriétaire supprimé : annonce conservée, anonymisée, purgée
 select tests.setup();
@@ -32,6 +33,7 @@ select tests.open_conversation('b0000000-0000-0000-0000-000000000001', '22222222
 insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Bonjour'), (tests.conv(), '11111111-1111-1111-1111-111111111111', 'Salut');
 insert into public.reports (listing_id, reporter_id, reason) values ('b0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'Contenu suspect');
 select tests.open_conversation('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
+insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Je peux l''emprunter ?');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 insert into public.loans (listing_id, borrower_id) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
 select tests.act_admin();
@@ -44,13 +46,13 @@ select is((select count(*) from public.listing_photos where storage_path like '1
 select results_eq($$select returned_at is not null, borrower_id from public.loans$$, $$values (true, '22222222-2222-2222-2222-222222222222'::uuid)$$, 'prêt ouvert clôturé automatiquement, l''emprunteur est conservé');
 select is((select count(*) from public.conversations), 2::bigint, 'conversations conservées');
 select is((select count(*) from public.messages where sender_id is null), 1::bigint, 'message du membre supprimé conservé, expéditeur anonymisé');
-select is((select count(*) from public.messages where sender_id = '22222222-2222-2222-2222-222222222222'), 1::bigint, 'message de l''interlocuteur intact');
+select is((select count(*) from public.messages where sender_id = '22222222-2222-2222-2222-222222222222'), 2::bigint, 'messages de l''interlocuteur intacts');
 select results_eq($$select listing_id, reporter_id from public.reports$$, $$values ('b0000000-0000-0000-0000-000000000001'::uuid, '33333333-3333-3333-3333-333333333333'::uuid)$$, 'le signalement survit à la suppression du compte signalé');
 select throws_ok($$update public.listings set status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000001'$$, '23514', null, 'une annonce sans propriétaire ne peut pas redevenir visible');
 
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select is((select count(*) from public.conversations), 2::bigint, 'le demandeur lit encore ses conversations');
-select is((select count(*) from public.messages), 2::bigint, 'le demandeur lit encore les messages');
+select is((select count(*) from public.messages), 3::bigint, 'le demandeur lit encore les messages');
 select is((select count(*) from public.listings where owner_id is null), 0::bigint, 'annonces orphelines invisibles (le front affiche « Annonce supprimée »)');
 select is((select count(*) from public.loans), 1::bigint, 'l''emprunteur lit encore son prêt, clos');
 select is_empty($$update public.listings set description = 'pirate', status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000001' returning 1$$, 'personne ne peut modifier une annonce orpheline');
@@ -78,14 +80,14 @@ insert into public.messages (conversation_id, sender_id, body, created_at)
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select throws_ok($$insert into public.messages (conversation_id, body) values (tests.conv(), 'trop pour aujourd''hui')$$, 'PT429', 'Limite de 300 messages par jour atteinte', '301e message de la journée refusé');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
-select lives_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000003')$$, 'le plafond est par utilisateur : alice peut encore agir');
+select lives_ok($$select public.start_conversation('b0000000-0000-0000-0000-000000000003')$$, 'le plafond est par utilisateur : alice peut encore agir');
 
 select tests.act_admin();
 insert into public.listings (owner_id, activity_id, kind, city_id)
   select '11111111-1111-1111-1111-111111111111', 'a0000000-0000-0000-0000-000000000001', 'don', tests.city('75056') from generate_series(1, 25);
 select tests.act_as('33333333-3333-3333-3333-333333333333');
-select lives_ok($$insert into public.conversations (listing_id) select id from public.listings where owner_id = '11111111-1111-1111-1111-111111111111' and status = 'disponible' limit 20$$, '20 conversations par jour autorisées');
-select throws_ok($$insert into public.conversations (listing_id) select id from public.listings where owner_id = '11111111-1111-1111-1111-111111111111' and status = 'disponible' and id not in (select listing_id from public.conversations) limit 1$$, 'PT429', 'Limite de 20 nouvelles conversations par jour atteinte', '21e conversation refusée');
+select lives_ok($$select public.start_conversation(id) from public.listings where owner_id = '11111111-1111-1111-1111-111111111111' and status = 'disponible' limit 20$$, '20 conversations par jour autorisées');
+select throws_ok($$select public.start_conversation(id) from public.listings where owner_id = '11111111-1111-1111-1111-111111111111' and status = 'disponible' and id not in (select listing_id from public.conversations) limit 1$$, 'PT429', 'Limite de 20 nouvelles conversations par jour atteinte', '21e conversation refusée');
 
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select lives_ok($$insert into public.activities (name) select 'Activité ' || chr(64 + g) from generate_series(1, 10) g$$, '10 activités par jour autorisées');

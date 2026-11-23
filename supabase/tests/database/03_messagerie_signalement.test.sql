@@ -1,25 +1,31 @@
 begin;
 \ir ../support/helpers.inc
-select plan(37);
+select plan(40);
 select tests.setup();
 
 select tests.open_conversation('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
 
 -- ======================= conversations
 select tests.act_as('11111111-1111-1111-1111-111111111111');
-select throws_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000001')$$, '42501', null, 'impossible de converser sur sa propre annonce');
-select is((select count(*) from public.conversations), 1::bigint, 'le propriétaire voit la conversation');
+select is(tests.err($$select public.start_conversation('b0000000-0000-0000-0000-000000000001')$$), '23514/own_listing', 'impossible de converser sur sa propre annonce');
+select is((select count(*) from public.conversations), 0::bigint, 'le propriétaire ne voit pas une conversation où rien n''a été écrit');
 
 select tests.act_as('33333333-3333-3333-3333-333333333333');
 select is((select count(*) from public.conversations), 0::bigint, 'un tiers ne lit pas la conversation');
-select throws_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000004')$$, '42501', null, 'pas de conversation sur une annonce archivée');
-select lives_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000001')$$, 'carol ouvre sa propre conversation sur L1');
-select throws_ok($$insert into public.conversations (listing_id) values ('b0000000-0000-0000-0000-000000000001')$$, '23505', null, 'une seule conversation par (annonce, demandeur)');
-select throws_ok($$insert into public.conversations (listing_id, requester_id) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222')$$, '42501', null, 'requester_id usurpé refusé');
+select is(tests.err($$select public.start_conversation('b0000000-0000-0000-0000-000000000004')$$), '23514/listing_unavailable', 'pas de conversation sur une annonce archivée');
+select lives_ok($$select public.start_conversation('b0000000-0000-0000-0000-000000000001')$$, 'carol ouvre sa propre conversation sur L1');
+select is((select count(*) from public.conversations where requester_id = '33333333-3333-3333-3333-333333333333'), 1::bigint, 'une seule conversation par (annonce, demandeur) : start_conversation est idempotent');
+select lives_ok($$select public.start_conversation('b0000000-0000-0000-0000-000000000001')$$, 'second appel sans erreur');
+select throws_ok($$insert into public.conversations (listing_id, requester_id) values ('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222')$$, '42501', null, 'insert direct refusé (même avec un requester_id usurpé)');
+select tests.act_admin();
+select throws_ok($$insert into public.conversations (listing_id, requester_id) values ('b0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333')$$, '23505', null, 'contrainte d''unicité (annonce, demandeur) : doublon refusé même en admin');
 
 -- ======================= messages
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select lives_ok($$insert into public.messages (conversation_id, body) values (tests.conv(), 'Bonjour')$$, 'bob écrit');
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+select is((select count(*) from public.conversations), 1::bigint, 'le propriétaire voit la conversation dès le premier message');
+select tests.act_as('22222222-2222-2222-2222-222222222222');
 select throws_ok($$insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '11111111-1111-1111-1111-111111111111', 'usurpation')$$, '42501', null, 'sender_id usurpé refusé');
 select throws_ok($$insert into public.messages (conversation_id, body) values (tests.conv(), '   ')$$, '23514', null, 'message vide refusé');
 select throws_ok($$insert into public.messages (conversation_id, body) values (tests.conv(), repeat('a', 2001))$$, '23514', null, 'message trop long refusé');
@@ -65,13 +71,14 @@ select is(private.conversation_has_both_parties(tests.conv()), false, 'helper : 
 -- (demandeur supprimé : conversation carol -> annonce de bob ; propriétaire supprimé : conversation bob -> annonce d'alice)
 select tests.open_conversation('b0000000-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333');
 select set_config('tests.conv_requester', tests.conv()::text, true);
+insert into public.messages (conversation_id, sender_id, body) values (current_setting('tests.conv_requester')::uuid, '33333333-3333-3333-3333-333333333333', 'Premier message du demandeur');
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select lives_ok($$insert into public.messages (conversation_id, body) values (current_setting('tests.conv_requester')::uuid, 'Avant suppression')$$, 'bob (propriétaire) écrit tant que le demandeur existe');
 select tests.act_admin();
 delete from auth.users where id = '33333333-3333-3333-3333-333333333333';
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select throws_ok($$insert into public.messages (conversation_id, body) values (current_setting('tests.conv_requester')::uuid, 'Dans le vide')$$, '42501', null, 'écriture refusée si la conversation n''a plus de demandeur');
-select is((select count(*) from public.messages where conversation_id = current_setting('tests.conv_requester')::uuid), 1::bigint, 'mais la conversation reste lisible');
+select is((select count(*) from public.messages where conversation_id = current_setting('tests.conv_requester')::uuid), 2::bigint, 'mais la conversation reste lisible');
 
 select tests.act_admin();
 delete from auth.users where id = '11111111-1111-1111-1111-111111111111';

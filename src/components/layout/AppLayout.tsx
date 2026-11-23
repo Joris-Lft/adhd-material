@@ -1,8 +1,10 @@
 import { useRef } from "react";
 import { Link, Outlet, ScrollRestoration } from "react-router";
-import { ListChecks, Package, Plus, User } from "lucide-react";
+import { ListChecks, MessageCircle, Package, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/useSession";
+import { InboxRealtime } from "@/features/messages/InboxRealtime";
+import { useUnreadCount } from "@/hooks/useConversations";
 import { useFocusHeadingOnNavigation } from "@/hooks/useFocusHeadingOnNavigation";
 import { useMyProfile } from "@/hooks/useMyProfile";
 
@@ -22,7 +24,9 @@ function AccountLink() {
     <Button asChild variant="outline" size="sm" className="max-w-48">
       <Link to="/profil">
         <User aria-hidden="true" />
-        <span className="truncate">{profile?.display_name ?? "Mon profil"}</span>
+        <span className="sr-only truncate sm:not-sr-only">
+          {profile?.display_name ?? "Mon profil"}
+        </span>
       </Link>
     </Button>
   );
@@ -36,6 +40,32 @@ function MyListingsLink() {
       <Link to="/mes-annonces">
         <ListChecks aria-hidden="true" />
         <span className="sr-only sm:not-sr-only">Mes annonces</span>
+      </Link>
+    </Button>
+  );
+}
+
+function MessagesLink() {
+  const { session } = useSession();
+  const { data: unread = 0 } = useUnreadCount();
+  if (!session) return null;
+  const label =
+    unread > 0 ? `Messages, ${unread} ${unread > 1 ? "non lus" : "non lu"}` : "Messages";
+  return (
+    <Button asChild variant="ghost" size="sm" className="relative">
+      <Link to="/messages" aria-label={label}>
+        <MessageCircle aria-hidden="true" />
+        <span className="sr-only sm:not-sr-only" aria-hidden="true">
+          Messages
+        </span>
+        {unread > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute top-0 right-0 flex min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground sm:static"
+          >
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
       </Link>
     </Button>
   );
@@ -73,6 +103,7 @@ export function AppLayout() {
               </Link>
             </Button>
             <MyListingsLink />
+            <MessagesLink />
             <AccountLink />
           </nav>
         </div>
@@ -85,6 +116,7 @@ export function AppLayout() {
       >
         <Outlet />
       </main>
+      <InboxRealtime />
       <ScrollRestoration />
     </div>
   );

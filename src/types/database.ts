@@ -163,14 +163,14 @@ isOneToOne: false
                   ]
                 },"messages": {
                   Row: {
-                    "body": string,"conversation_id": string,"created_at": string,"id": string,"read_at": string | null,"sender_id": string | null
+                    "body": string,"client_id": string | null,"conversation_id": string,"created_at": string,"id": string,"read_at": string | null,"sender_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"conversation_id": string,"created_at"?: string,"id"?: string,"read_at"?: string | null,"sender_id"?: string | null
+                    "body": string,"client_id"?: string | null,"conversation_id": string,"created_at"?: string,"id"?: string,"read_at"?: string | null,"sender_id"?: string | null
                   }
                   Update: {
-                    "body"?: string,"conversation_id"?: string,"created_at"?: string,"id"?: string,"read_at"?: string | null,"sender_id"?: string | null
+                    "body"?: string,"client_id"?: string | null,"conversation_id"?: string,"created_at"?: string,"id"?: string,"read_at"?: string | null,"sender_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -245,16 +245,41 @@ isOneToOne: false
 "create_listing":
 { Args: { "p_activity_id": string,"p_city_id": string,"p_description"?: string,"p_experience"?: string,"p_kind": Database["public"]['Enums']["listing_kind"],"p_photo_paths": (string)[] }; Returns: string
                            },
+"get_conversation":
+{ Args: { "p_conversation_id": string }; Returns: Database["public"]['CompositeTypes']["conversation_summary"][]
+                          SetofOptions: {
+        from: "*"
+        to: "conversation_summary"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "get_my_profile":
 { Args: Record<PropertyKey, never>; Returns: {
               "city_id": string,"display_name": string,"display_name_confirmed": boolean,"id": string
             }[]
+                           },
+"get_unread_count":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"list_my_conversations":
+{ Args: Record<PropertyKey, never>; Returns: Database["public"]['CompositeTypes']["conversation_summary"][]
+                          SetofOptions: {
+        from: "*"
+        to: "conversation_summary"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"mark_conversation_read":
+{ Args: { "p_conversation_id": string }; Returns: number
                            },
 "normalize_place":
 { Args: { "t": string }; Returns: string
                            },
 "normalize_text":
 { Args: { "t": string }; Returns: string
+                           },
+"return_loan":
+{ Args: { "p_loan_id": string }; Returns: undefined
                            },
 "search_activities":
 { Args: { "q": string }; Returns: {
@@ -270,13 +295,21 @@ isOneToOne: false
 { Args: { "p_activity_id"?: string,"p_city_id": string,"p_kind"?: Database["public"]['Enums']["listing_kind"],"p_limit"?: number,"p_offset"?: number,"p_radius_km": number }; Returns: {
               "activity_id": string,"activity_name": string,"city_id": string,"city_name": string,"cover_photo_path": string,"created_at": string,"description": string,"distance_km": number,"experience": string,"id": string,"kind": Database["public"]['Enums']["listing_kind"],"owner_display_name": string,"owner_id": string,"postal_codes": (string)[],"status": Database["public"]['Enums']["listing_status"]
             }[]
+                           },
+"start_conversation":
+{ Args: { "p_listing_id": string }; Returns: string
+                           },
+"start_loan":
+{ Args: { "p_conversation_id": string,"p_due_at"?: string }; Returns: string
                            }
           }
           Enums: {
             "listing_kind": "don"|"pret","listing_status": "disponible"|"reservee"|"donnee"|"pretee"|"archivee"
           }
           CompositeTypes: {
-            [_ in never]: never
+            "conversation_summary": {
+                        "conversation_id": string | null,"role": string | null,"created_at": string | null,"last_activity_at": string | null,"listing_id": string | null,"activity_name": string | null,"listing_kind": Database["public"]['Enums']["listing_kind"] | null,"listing_status": Database["public"]['Enums']["listing_status"] | null,"cover_photo_path": string | null,"other_user_id": string | null,"other_display_name": string | null,"is_closed": boolean | null,"last_message_excerpt": string | null,"last_message_at": string | null,"last_message_from_me": boolean | null,"unread_count": number | null,"loan_id": string | null,"loan_started_at": string | null,"loan_due_at": string | null
+                      }
           }
         }
 }

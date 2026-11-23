@@ -33,6 +33,7 @@ select lives_ok($$select tests.exec_checked($q$delete from public.listing_photos
 select tests.act_admin();
 select throws_ok($$update public.listings set status = 'pretee' where id = 'b0000000-0000-0000-0000-000000000002'$$, '23514', null, 'même postgres ne pose pas « pretee » sans le signal des triggers loans');
 select tests.open_conversation('b0000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222');
+insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '22222222-2222-2222-2222-222222222222', 'Je peux l''emprunter ?');
 select tests.act_as('22222222-2222-2222-2222-222222222222');
 select throws_ok($$insert into public.loans (listing_id, borrower_id) values ('b0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111')$$, '42501', 'Annonce introuvable ou non autorisée', 'bob ne peut pas prêter l''annonce d''alice : message neutre');
 select throws_ok($$insert into public.loans (listing_id, borrower_id) values ('b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111')$$, '42501', 'Annonce introuvable ou non autorisée', 'idem sur un don : aucun détail sur l''annonce');
@@ -83,6 +84,7 @@ select lives_ok($$select tests.exec_checked($q$select 1$q$)$$, 'retour de prêt 
 select tests.act_admin();
 update public.listings set status = 'disponible' where id = 'b0000000-0000-0000-0000-000000000002';
 select tests.open_conversation('b0000000-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333');
+insert into public.messages (conversation_id, sender_id, body) values (tests.conv(), '33333333-3333-3333-3333-333333333333', 'Je peux l''emprunter ?');
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 select lives_ok($$insert into public.loans (listing_id, borrower_id) values ('b0000000-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333')$$, 'nouveau prêt à carol');
 select tests.act_admin();

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/useSession";
 import { formatCity } from "@/features/cities/format-city";
 import { ListingGallery } from "@/features/listings/ListingGallery";
+import { ContactButton } from "@/features/messages/ContactButton";
 import { KindBadge, StatusBadge } from "@/features/listings/ListingBadges";
 import { ListingStatusActions } from "@/features/listings/ListingStatusActions";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -61,11 +62,9 @@ function ContactAction({ listing }: { listing: ListingDetail }) {
       </Button>
     );
   }
-  return (
-    <Button type="button" disabled>
-      La messagerie arrive bientôt
-    </Button>
-  );
+  // Sans auteur (compte supprimé), personne à contacter.
+  if (!listing.ownerId) return null;
+  return <ContactButton listingId={listing.id} ownerName={listing.ownerName} />;
 }
 
 export function ListingPage() {

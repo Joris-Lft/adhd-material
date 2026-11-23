@@ -222,3 +222,87 @@ export function mapListingStatusError(error: ErrorLike): string {
   }
   return LISTING_STATUS_FAILED;
 }
+
+// --- Messagerie et prêts ---
+
+export const MESSAGING_SESSION_EXPIRED = "Ta session a expiré. Reconnecte-toi puis réessaie.";
+export const CONTACT_OWN_LISTING = "C'est ton annonce : tu ne peux pas te contacter toi-même.";
+export const CONTACT_LISTING_UNAVAILABLE =
+  "Cette annonce n'est plus disponible : tu ne peux plus la contacter.";
+export const CONVERSATION_RATE_LIMIT =
+  "Tu as déjà contacté beaucoup de personnes aujourd'hui. Réessaie demain.";
+export const MESSAGE_EMPTY = "Écris un message avant de l'envoyer.";
+export const MESSAGE_TOO_LONG = "Ton message est trop long : 2000 caractères au maximum.";
+export const MESSAGE_CLOSED = "Cette personne n'a plus de compte : tu ne peux plus lui écrire.";
+export const MESSAGE_RATE_LIMIT =
+  "Tu envoies beaucoup de messages. Patiente un instant avant de réessayer.";
+export const MESSAGE_NOT_PARTICIPANT = "Tu ne fais pas partie de cette conversation.";
+export const MESSAGE_SEND_FAILED =
+  "Le message n'a pas pu être envoyé. Ton texte est conservé : réessaie dans un instant.";
+export const LOAN_CONVERSATION_GONE = "Cette conversation n'est plus disponible. Recharge la page.";
+export const MESSAGE_CLOSED_LOAN =
+  "Cette personne n'a plus de compte : le prêt ne peut plus être enregistré.";
+export const LOAN_NOT_LOANABLE = "Cette annonce n'est pas une annonce de prêt.";
+export const LOAN_ALREADY_OPEN = "Ce matériel est déjà prêté en ce moment.";
+export const LOAN_LISTING_UNAVAILABLE =
+  "Cette annonce n'est plus disponible : le prêt ne peut pas être enregistré.";
+export const LOAN_DUE_DATE_INVALID = "La date de retour doit être à partir d'aujourd'hui.";
+export const LOAN_NOT_FOUND = "Ce prêt n'existe plus. Recharge la page.";
+export const LOAN_ALREADY_RETURNED = "Ce prêt est déjà marqué comme rendu.";
+export const LOAN_FAILED = "Le prêt n'a pas pu être mis à jour. Réessaie dans un instant.";
+
+function isSessionError(error: ErrorLike): boolean {
+  return error.code === "PGRST301" || error.code === "PGRST303" || error.hint === "auth_required";
+}
+
+/** Erreur de start_conversation (clé `hint`, jamais le message). */
+export function mapStartConversationError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  if (error.hint === "conversation_rate_limit" || error.code === "PT429" || error.status === 429) {
+    return CONVERSATION_RATE_LIMIT;
+  }
+  if (error.hint === "own_listing") return CONTACT_OWN_LISTING;
+  if (error.hint === "listing_unavailable") return CONTACT_LISTING_UNAVAILABLE;
+  if (isSessionError(error)) return MESSAGING_SESSION_EXPIRED;
+  return GENERIC_ERROR;
+}
+
+/** Erreur de l'envoi d'un message. */
+export function mapSendMessageError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  if (error.hint === "message_rate_limit" || error.code === "PT429" || error.status === 429) {
+    return MESSAGE_RATE_LIMIT;
+  }
+  if (error.hint === "conversation_closed") return MESSAGE_CLOSED;
+  if (error.hint === "body_empty") return MESSAGE_EMPTY;
+  if (error.hint === "body_too_long") return MESSAGE_TOO_LONG;
+  if (isSessionError(error)) return MESSAGING_SESSION_EXPIRED;
+  // 42501 sans clé : la politique d'écriture refuse (tu n'es pas dans la conversation).
+  if (error.code === "42501" && !error.hint) return MESSAGE_NOT_PARTICIPANT;
+  return MESSAGE_SEND_FAILED;
+}
+
+/** Erreur de start_loan ou return_loan. */
+export function mapLoanError(error: ErrorLike): string {
+  if (isNetworkError(error)) return NETWORK_ERROR;
+  switch (error.hint) {
+    case "conversation_not_found":
+      return LOAN_CONVERSATION_GONE;
+    case "conversation_closed":
+      return MESSAGE_CLOSED_LOAN;
+    case "listing_not_loanable":
+      return LOAN_NOT_LOANABLE;
+    case "loan_already_open":
+      return LOAN_ALREADY_OPEN;
+    case "listing_not_available":
+      return LOAN_LISTING_UNAVAILABLE;
+    case "due_date_invalid":
+      return LOAN_DUE_DATE_INVALID;
+    case "loan_not_found":
+      return LOAN_NOT_FOUND;
+    case "loan_already_returned":
+      return LOAN_ALREADY_RETURNED;
+  }
+  if (isSessionError(error)) return MESSAGING_SESSION_EXPIRED;
+  return LOAN_FAILED;
+}
