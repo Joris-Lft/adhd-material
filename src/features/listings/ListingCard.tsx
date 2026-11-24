@@ -24,8 +24,8 @@ export function ListingCard({
 }: ListingCardProps) {
   const distance = formatDistance(listing.distanceKm, ownCity);
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
-      <div className="aspect-4/3 w-full bg-muted">
+    <article className="relative flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm">
+      <div className="aspect-4/3 w-full overflow-hidden rounded-t-xl bg-muted">
         {listing.coverPath ? (
           <img
             src={listingPhotoUrl(listing.coverPath)}
@@ -40,11 +40,11 @@ export function ListingCard({
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <Heading className="text-lg font-semibold">
+        <Heading className="text-lg font-semibold wrap-break-word">
           <Link
             id={`listing-link-${listing.id}`}
             to={`/annonces/${listing.id}`}
-            className="rounded-sm outline-none after:absolute after:inset-0 focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50 focus-visible:after:rounded-xl"
+            className="rounded-sm outline-none after:absolute after:inset-0 focus-visible:after:rounded-xl focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
           >
             {listing.activityName}
           </Link>

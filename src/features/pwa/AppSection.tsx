@@ -1,4 +1,5 @@
 import { InstallApp } from "@/features/pwa/InstallApp";
+import { ThemeSelect } from "@/features/theme/ThemeSelect";
 import { UpdateCheck } from "@/features/pwa/UpdateCheck";
 
 /** Profil : installation, mise à jour et version de l'appli. */
@@ -8,6 +9,7 @@ export function AppSection() {
       <h2 id="app-heading" className="text-lg font-semibold">
         L'appli
       </h2>
+      <ThemeSelect />
       <InstallApp />
       <UpdateCheck />
       <p className="text-xs text-muted-foreground">Version {__APP_VERSION__}</p>

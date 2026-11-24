@@ -11,5 +11,11 @@ export function KindBadge({ kind }: { kind: ListingKind }) {
 /** Badge de statut ; rien pour une annonce disponible. */
 export function StatusBadge({ status }: { status: ListingStatus }) {
   if (status === "disponible") return null;
-  return <span className={cn(base, "bg-amber-100 text-amber-900")}>{STATUS_LABEL[status]}</span>;
+  return (
+    <span
+      className={cn(base, "bg-amber-100 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200")}
+    >
+      {STATUS_LABEL[status]}
+    </span>
+  );
 }

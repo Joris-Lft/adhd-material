@@ -156,7 +156,7 @@ export function ReportListing({ listingId }: { listingId: string }) {
               {REPORT_CATEGORIES.map((item, index) => (
                 <label
                   key={item.value}
-                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-accent has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
+                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-input px-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-accent focus-ring-within"
                 >
                   <input
                     ref={index === 0 ? firstRadio : undefined}
@@ -172,6 +172,9 @@ export function ReportListing({ listingId }: { listingId: string }) {
                     className="size-4 accent-primary"
                   />
                   {item.label}
+                  {category === item.value && (
+                    <Check className="ml-auto size-4" aria-hidden="true" />
+                  )}
                 </label>
               ))}
               {categoryError && (

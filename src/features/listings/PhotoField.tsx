@@ -98,7 +98,7 @@ export function PhotoField({ value, onChange, onBlur, error, onBusyChange }: Pho
       id="listing-photos"
       tabIndex={-1}
       aria-describedby={[hintId, error ? errorId : null].filter(Boolean).join(" ")}
-      className="space-y-3 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="space-y-3 rounded-md focus-ring"
     >
       <legend className="text-sm leading-none font-medium">Photos (1 à 3)</legend>
       <p id={hintId} className="text-sm text-muted-foreground">

@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { ActivityPicker } from "@/features/activities/ActivityPicker";
 import { CityPicker, type CityValue } from "@/features/cities/CityPicker";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ export function ListingFilters({
               id="filter-radius"
               value={radius}
               onChange={(event) => onRadiusChange(Number(event.target.value))}
-              className="h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs focus-ring md:text-sm"
             >
               {RADIUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -92,9 +93,9 @@ export function ListingFilters({
             <label
               key={option.label}
               className={cn(
-                "flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors hover:bg-accent/50",
+                "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent/50",
                 "has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-1 has-checked:ring-primary",
-                "has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
+                "focus-ring-within",
               )}
             >
               <input
@@ -105,6 +106,7 @@ export function ListingFilters({
                 onChange={() => onKindChange(option.value)}
                 className="sr-only"
               />
+              {kind === option.value && <Check className="size-4" aria-hidden="true" />}
               {option.label}
             </label>
           ))}

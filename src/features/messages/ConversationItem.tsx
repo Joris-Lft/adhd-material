@@ -21,7 +21,7 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
   return (
     <Link
       to={`/messages/${conversation.id}`}
-      className="flex min-h-11 items-center gap-3 rounded-xl border bg-card p-3 text-card-foreground shadow-sm outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex min-h-11 items-center gap-3 rounded-xl border bg-card p-3 text-card-foreground shadow-sm hover:bg-accent focus-ring"
     >
       {/* Non-lus d'abord : c'est la première chose annoncée par un lecteur d'écran. */}
       {unread && (

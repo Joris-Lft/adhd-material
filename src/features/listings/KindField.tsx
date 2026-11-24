@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ListingKind } from "@/services/listings";
 
@@ -24,9 +25,9 @@ export function KindField({ value, onChange, onBlur, error }: KindFieldProps) {
           <label
             key={option.value}
             className={cn(
-              "flex min-h-16 cursor-pointer flex-col justify-center gap-1 rounded-md border p-4 transition-colors hover:bg-accent/50",
+              "flex min-h-16 cursor-pointer flex-col justify-center gap-1 rounded-md border border-input p-4 transition-colors hover:bg-accent/50",
               "has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-1 has-checked:ring-primary",
-              "has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
+              "focus-ring-within",
               error && "border-destructive",
             )}
           >
@@ -42,7 +43,10 @@ export function KindField({ value, onChange, onBlur, error }: KindFieldProps) {
               aria-describedby={error ? errorId : undefined}
               className="sr-only"
             />
-            <span className="text-base font-semibold">{option.title}</span>
+            <span className="flex items-center gap-2 text-base font-semibold">
+              {value === option.value && <Check className="size-4" aria-hidden="true" />}
+              {option.title}
+            </span>
             <span className="text-sm text-muted-foreground">{option.description}</span>
           </label>
         ))}

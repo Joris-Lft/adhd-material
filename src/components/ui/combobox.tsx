@@ -199,7 +199,9 @@ export function Combobox<T extends ComboboxOption>({
                     aria-selected={index === active}
                     className={cn(
                       "flex min-h-11 cursor-pointer items-center px-3 py-2 text-base md:text-sm",
-                      index === active ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
+                      index === active
+                        ? "border-l-4 border-primary bg-accent pl-2 text-accent-foreground"
+                        : "hover:bg-accent/50",
                     )}
                     onClick={() => select(option)}
                   >

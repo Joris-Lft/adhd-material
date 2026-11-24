@@ -86,7 +86,7 @@ export function AppLayout() {
       <a
         href="#contenu"
         onClick={skipToContent}
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-20 focus:rounded-md focus:bg-background focus:px-4 focus:py-3 focus:shadow-lg focus:ring-2 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-20 focus:rounded-md focus:bg-background focus:px-4 focus:py-3 focus:shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-ring"
       >
         Aller au contenu
       </a>

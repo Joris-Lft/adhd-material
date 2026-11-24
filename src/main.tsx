@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router";
 import { PwaUpdatePrompt } from "@/components/layout/PwaUpdatePrompt";
 import { SessionProvider } from "@/features/auth/SessionProvider";
+import { ThemeProvider } from "@/features/theme/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { startInstallPromptCapture } from "@/lib/install-prompt";
 import { queryClient } from "@/lib/query-client";
@@ -21,18 +22,20 @@ startInstallPromptCapture();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <PwaUpdatePrompt>
-        <SessionProvider>
-          <RouterProvider router={router} />
-        </SessionProvider>
-      </PwaUpdatePrompt>
-      <Toaster />
-      {ReactQueryDevtools && (
-        <Suspense>
-          <ReactQueryDevtools initialIsOpen={false} />
-        </Suspense>
-      )}
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <PwaUpdatePrompt>
+          <SessionProvider>
+            <RouterProvider router={router} />
+          </SessionProvider>
+        </PwaUpdatePrompt>
+        <Toaster />
+        {ReactQueryDevtools && (
+          <Suspense>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </Suspense>
+        )}
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

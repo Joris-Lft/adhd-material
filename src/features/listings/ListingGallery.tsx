@@ -42,7 +42,7 @@ export function ListingGallery({
                 aria-pressed={photo === current}
                 onClick={() => setIndex(position)}
                 className={cn(
-                  "block size-16 overflow-hidden rounded-md border-2 border-transparent outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "block size-16 overflow-hidden rounded-md border-2 border-transparent focus-ring",
                   photo === current && "border-primary",
                 )}
               >
